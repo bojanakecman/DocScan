@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:layout_width="@dimen/calibrate_button_width"
+    android:layout_height="@dimen/calibrate_button_height"
+    android:layout_marginBottom="160dp"
+    android:layout_marginLeft="5dp"
+    android:layout_alignParentBottom="true"
+    android:layout_alignParentLeft="true">
+
+
+    <android.support.v7.widget.AppCompatImageButton
+        android:id="@+id/calibrate_button"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:src="@mipmap/ic_calibrate"
+        android:visibility="invisible"
+        />
+
+</RelativeLayout>

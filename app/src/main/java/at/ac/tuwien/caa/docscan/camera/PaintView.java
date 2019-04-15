@@ -73,6 +73,9 @@ public class PaintView extends SurfaceView implements SurfaceHolder.Callback {
     private CVResult mCVResult;
     private boolean mDrawGrid = false;
 
+    private boolean mDrawRulers = false;
+    private float[] mOrientations;
+
     /**
      * Creates the PaintView, the timerCallback and the thread responsible for the drawing.
      * @param context of the Activity
@@ -262,6 +265,20 @@ public class PaintView extends SurfaceView implements SurfaceHolder.Callback {
 
     }
 
+    //---*-*-*-*-*-*-*-*-*-*-*-*-* BOJANA -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-**-*-*
+
+    public void drawRulers(boolean draw){
+      mDrawRulers = draw;
+      forceDrawUpdate();
+    }
+
+    public void setOrientation(float[] orientations){
+        mOrientations = orientations;
+        forceDrawUpdate();
+    }
+
+    //---*-*-*-*-*-*-*-*-*-*-*-*-* BOJANA -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-**-*-*
+
     public void drawMovementIndicator(boolean drawMovementIndicator) {
 
         mDrawMovementIndicator = drawMovementIndicator;
@@ -328,8 +345,8 @@ public class PaintView extends SurfaceView implements SurfaceHolder.Callback {
         private static final String TEXT_FORMAT = "%.2f";
 
         // Focus touch:
-        private final long FOCUS_TOUCH_ANIMATION_DURATION =     200000000; // in nano seconds
-        private final long FOCUS_TOUCH_MAX_DURATION =           15000000000L; // in nano seconds
+        private final long FOCUS_TOUCH_ANIMATION_DURATION = 200000000; // in nano seconds
+        private final long FOCUS_TOUCH_MAX_DURATION = 15000000000L; // in nano seconds
         private final float FOCUS_TOUCH_CIRCLE_RADIUS_START =
                 getResources().getDimension(R.dimen.focus_touch_circle_radius_start);
         private final float FOCUS_TOUCH_CIRCLE_RADIUS_END =
@@ -338,16 +355,24 @@ public class PaintView extends SurfaceView implements SurfaceHolder.Callback {
         private Paint mFocusTouchOutlinePaint;
 
 
-
         private final int STATE_TEXT_BG_COLOR = getResources().getColor(R.color.hud_state_rect_color);
         private final int PAGE_RECT_COLOR = getResources().getColor(R.color.hud_page_rect_color);
         private final int FOCUS_SHARP_RECT_COLOR = getResources().getColor(R.color.hud_focus_sharp_rect_color);
         private final int FOCUS_UNSHARP_RECT_COLOR = getResources().getColor(R.color.hud_focus_unssharp_rect_color);
         private final int HELPER_LINE_COLOR = getResources().getColor(R.color.hud_helper_line_color);
+        private final int ALIGNED_RULER_COLOR = getResources().getColor(R.color.aligned_rulers_color);
+        private final int UNALIGNED_RULER_COLOR = getResources().getColor(R.color.unaligned_rulers_color);
+        private final int ORIENTATION_INDICATION_COLOR = getResources().getColor(R.color.aligned_rulers_color);
 
 
         private Paint mFocusSharpRectPaint;
         private Paint mFocusUnsharpRectPaint;
+
+        //-*-*-*-*-*-*-*-*-*-*-*-*-*-*--*BOJANA-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-
+        private Paint mHorizontalRulerPaint;
+        private Paint mVerticalRulerPaint;
+        private Paint mOrientationIndicatorPaint;
+
 
         // Used for debug output:
 
@@ -355,7 +380,6 @@ public class PaintView extends SurfaceView implements SurfaceHolder.Callback {
 
 
             mSurfaceHolder = surfaceHolder;
-
 //            Initialize drawing stuff:
 
             // Used to print out measured focus:
@@ -419,14 +443,27 @@ public class PaintView extends SurfaceView implements SurfaceHolder.Callback {
             mFocusTouchOutlinePaint.setStyle(Paint.Style.STROKE);
             mFocusTouchOutlinePaint.setStrokeWidth(getResources().getDimension(R.dimen.focus_circle_stroke_width));
             mFocusTouchOutlinePaint.setAntiAlias(true);
-        }
 
+            mHorizontalRulerPaint = new Paint();
+            mHorizontalRulerPaint.setStrokeWidth(4);
+
+            mVerticalRulerPaint = new Paint();
+            mVerticalRulerPaint.setStrokeWidth(4);
+
+            mOrientationIndicatorPaint = new Paint();
+            mOrientationIndicatorPaint.setStrokeWidth(4);
+            mOrientationIndicatorPaint.setColor(PAGE_RECT_COLOR);
+            mOrientationIndicatorPaint.setTextSize(40f);
+
+
+        }
 
 
         /**
          * Continuous looping method used for waiting for updates of the CVResult object. The draw
          * method is only called after the CVResult object is updated. Note that this saves a lot of
          * CPU usage.
+         *
          * @see <a href="https://developer.android.com/training/custom-views/optimizing-view.html">Optimizing the View</a>
          */
         @Override
@@ -465,8 +502,7 @@ public class PaintView extends SurfaceView implements SurfaceHolder.Callback {
                                 mSegmentationPaint.setAlpha(mSegmentationPaint.getAlpha() - 20);
 //                            mFocusSharpRectPaint.setAlpha(mFocusSharpRectPaint.getAlpha() - 20);
 //                            mFocusUnsharpRectPaint.setAlpha(mFocusUnsharpRectPaint.getAlpha() - 20);
-                        }
-                        else {
+                        } else {
                             mSegmentationPaint.setAlpha(221);
                             mFocusSharpRectPaint.setAlpha(170);
                             mFocusUnsharpRectPaint.setAlpha(170);
@@ -497,6 +533,7 @@ public class PaintView extends SurfaceView implements SurfaceHolder.Callback {
 
         /**
          * Used for pausing and resuming the drawer thread.
+         *
          * @param b boolean indicating if the thread is running
          */
         public void setRunning(boolean b) {
@@ -510,9 +547,9 @@ public class PaintView extends SurfaceView implements SurfaceHolder.Callback {
         }
 
 
-
         /**
          * Method used for the drawing of the CV result.
+         *
          * @param canvas canvas
          */
         private void draw(Canvas canvas) {
@@ -528,12 +565,12 @@ public class PaintView extends SurfaceView implements SurfaceHolder.Callback {
             canvas.drawColor(Color.BLUE, PorterDuff.Mode.CLEAR);
 
             if (mDrawMovementIndicator) {
-                Rect rect = new Rect(0,0, getWidth(), getHeight());
+                Rect rect = new Rect(0, 0, getWidth(), getHeight());
                 canvas.drawRect(rect, mMovementPaint);
             }
 
             if (mDrawWaitingIndicator) {
-                Rect rect = new Rect(0,0, getWidth(), getHeight());
+                Rect rect = new Rect(0, 0, getWidth(), getHeight());
                 canvas.drawRect(rect, mWaitingFramePaint);
             }
 
@@ -542,6 +579,9 @@ public class PaintView extends SurfaceView implements SurfaceHolder.Callback {
 
             if (mDrawFocusTouch)
                 drawFocusCircle(canvas);
+
+            if (mDrawRulers)
+                drawRulers(canvas);
 
             if (mCVResult != null) {
 
@@ -584,8 +624,7 @@ public class PaintView extends SurfaceView implements SurfaceHolder.Callback {
                     radius = (int) (FOCUS_TOUCH_CIRCLE_RADIUS_END +
                             Math.round(FOCUS_TOUCH_CIRCLE_RADIUS_START - FOCUS_TOUCH_CIRCLE_RADIUS_END)
                                     * (1 - (float) timeDiff / FOCUS_TOUCH_ANIMATION_DURATION));
-                }
-                else {
+                } else {
                     Log.d(TAG, "focus stopped animation");
                     int alpha = mFocusTouchCirclePaint.getAlpha() - 20;
                     if (alpha < 0)
@@ -593,13 +632,10 @@ public class PaintView extends SurfaceView implements SurfaceHolder.Callback {
                     mFocusTouchCirclePaint.setAlpha(alpha);
                 }
 
-
-
                 canvas.drawCircle(mFocusTouchPoint.x, mFocusTouchPoint.y, radius, mFocusTouchCirclePaint); // Filling
                 canvas.drawCircle(mFocusTouchPoint.x, mFocusTouchPoint.y, radius, mFocusTouchOutlinePaint); // Outline
 
-            }
-            else
+            } else
                 mDrawFocusTouch = false;
 
         }
@@ -612,13 +648,13 @@ public class PaintView extends SurfaceView implements SurfaceHolder.Callback {
 
 //            Draw the vertical lines:
             for (int i = 0; i < gridColumnNum - 1; i++) {
-                float x = ((float) getWidth() / gridColumnNum) * (i+1);
+                float x = ((float) getWidth() / gridColumnNum) * (i + 1);
                 canvas.drawLine(x, 0, x, getHeight(), mGridPaint);
             }
 
 //            Draw the horizontal lines:
             for (int i = 0; i < gridRowNum - 1; i++) {
-                float y = ((float) getHeight() / gridRowNum) * (i+1);
+                float y = ((float) getHeight() / gridRowNum) * (i + 1);
                 canvas.drawLine(0, y, getWidth(), y, mGridPaint);
             }
 
@@ -626,6 +662,7 @@ public class PaintView extends SurfaceView implements SurfaceHolder.Callback {
 
         /**
          * Draws the output of the page segmentation task.
+         *
          * @param canvas canvas
          */
         private void drawPageSegmentation(Canvas canvas) {
@@ -669,6 +706,7 @@ public class PaintView extends SurfaceView implements SurfaceHolder.Callback {
 
         /**
          * Draws the output of the focus measurement task.
+         *
          * @param canvas canvas
          */
         private void drawFocusMeasure(Canvas canvas) {
@@ -691,8 +729,7 @@ public class PaintView extends SurfaceView implements SurfaceHolder.Callback {
 
                         drawFocusRect(canvas, mFocusSharpRectPaint, patch.getDrawViewPX(), patch.getDrawViewPY());
 
-                    }
-                    else {
+                    } else {
 
                         if (mDrawFocusText)
                             mTextPaint.setColor(FOCUS_UNSHARP_RECT_COLOR);
@@ -738,8 +775,113 @@ public class PaintView extends SurfaceView implements SurfaceHolder.Callback {
             canvas.drawPath(mFocusPath, paint);
 
         }
-    }
 
+        //---*-*-*-*-*-*-*-*-*-*-*-*-* BOJANA -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-**-*-*
+        private void drawRulers(Canvas canvas) {
+
+            float startXBoundary = getWidth() / 10;
+            float endXBoundary = getWidth() - getWidth() / 10;
+            float startYBoundary = getHeight() - getHeight() / 20;
+            float endYBoundary = getHeight() / 5;
+
+            float horizontalLineLength = endXBoundary - startXBoundary - 80;
+            float verticalLineLength = startYBoundary - endYBoundary;
+
+            canvas.drawLine(endXBoundary, startYBoundary, endXBoundary, endYBoundary, mVerticalRulerPaint);
+            canvas.drawLine(startXBoundary, endYBoundary - 70, endXBoundary - 80, endYBoundary - 70, mHorizontalRulerPaint);
+
+            int noOfLinesV = 7;
+            float distV = verticalLineLength / (noOfLinesV - 1);
+            int smallPointer = 25;
+            int largePointer = 40;
+
+            float midVertical = 0;
+            float midHorizontal = 0;
+
+            for (int i = 0; i < noOfLinesV; i++) {
+                if (i == 3)
+                    midVertical = endYBoundary + i * distV;
+
+                if (i == 0 || i == noOfLinesV - 1) {
+                    canvas.drawLine(endXBoundary, endYBoundary + i * distV, endXBoundary - largePointer, endYBoundary + i * distV, mVerticalRulerPaint);
+                } else {
+                    canvas.drawLine(endXBoundary, endYBoundary + i * distV, endXBoundary - smallPointer, endYBoundary + i * distV, mVerticalRulerPaint);
+                }
+            }
+
+            int noOfLinesH = 5;
+            float distH = horizontalLineLength / (noOfLinesH - 1);
+
+            for (int i = 0; i < noOfLinesH; i++) {
+                if (i == 2)
+                    midHorizontal = startXBoundary + i * distH;
+
+                if (i == 0 || i == noOfLinesH - 1) {
+                    canvas.drawLine(startXBoundary + i * distH, endYBoundary - 70, startXBoundary  + i * distH, endYBoundary - 70 + largePointer, mHorizontalRulerPaint);
+                } else {
+                    canvas.drawLine(startXBoundary + i * distH, endYBoundary - 70, startXBoundary + i * distH, endYBoundary - 70 + smallPointer, mHorizontalRulerPaint);
+                }
+            }
+
+            //draw updated orientations
+            if (mOrientations != null) {
+
+                if (checkIfXIsLeveled()) {
+                    mVerticalRulerPaint.setColor(PAGE_RECT_COLOR);
+                } else {
+                    mVerticalRulerPaint.setColor(UNALIGNED_RULER_COLOR);
+                }
+
+                if (checkIfYIsLeveled()) {
+                    mHorizontalRulerPaint.setColor(PAGE_RECT_COLOR);
+                } else {
+                    mHorizontalRulerPaint.setColor(UNALIGNED_RULER_COLOR);
+                }
+
+                float newX;
+                float newY;
+
+                if (Math.abs(mOrientations[2]) <= 90) {
+                    newX = (int) (midHorizontal + horizontalLineLength / 2 * mOrientations[2] / 90);
+                } else if (mOrientations[2] > 90) {
+                    newX = (int) (midHorizontal + horizontalLineLength / 2 * (180 - mOrientations[2]) / 90);
+                } else {
+                    newX = (int) (midHorizontal + horizontalLineLength / 2 * (-180 - mOrientations[2]) / 90);
+                }
+
+                if (Math.abs(mOrientations[1]) <= 90) {
+                    newY = (int) (midVertical + verticalLineLength / 2 * mOrientations[1] / 90);
+                } else if (mOrientations[1] > 90) {
+                    newY = (int) (midVertical + verticalLineLength / 2 * (180 - mOrientations[1]) / 90);
+                } else {
+                    newY = (int) (midVertical + verticalLineLength / 2 * (-180 - mOrientations[1]) / 90);
+                }
+
+                canvas.drawLine(endXBoundary + 30, newY, endXBoundary - 50, newY, mOrientationIndicatorPaint);
+                canvas.drawLine(newX, endYBoundary - 100, newX, endYBoundary - 20, mOrientationIndicatorPaint);
+
+                canvas.drawText(String.valueOf(Math.round(mOrientations[1])) + "°", endXBoundary - 110, newY, mOrientationIndicatorPaint);
+                canvas.drawText(String.valueOf(Math.round(mOrientations[2])) + "°", newX, endYBoundary + 10, mOrientationIndicatorPaint);
+            }
+
+        }
+
+
+        private boolean checkIfXIsLeveled() {
+            if (Math.abs(mOrientations[1]) < 1) {
+                return true;
+            }
+            return false;
+        }
+        private boolean checkIfYIsLeveled() {
+            if (Math.abs(mOrientations[2]) < 1) {
+                return true;
+            }
+            return false;
+        }
+
+        //---*-*-*-*-*-*-*-*-*-*-*-*-* BOJANA -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-**-*-*
+    }
     /**
      * This class is used when a picture is taken.
      */

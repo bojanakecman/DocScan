@@ -49,4 +49,9 @@
 
     <!--<color name="photo_button_view_bg_color">#333</color>-->
 
+    <color name="aligned_rulers_color">#D81B60</color>
+    <color name="dialog_color">#424242</color>
+    <color name="text_color">#F3F3F3</color>
+    <color name="unaligned_rulers_color">#CCCCCC</color>
+
 </resources>

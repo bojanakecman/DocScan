@@ -62,6 +62,9 @@ import android.graphics.Point;
 import android.graphics.PointF;
 import android.graphics.drawable.Drawable;
 import android.hardware.Camera;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.location.Location;
 import android.media.MediaScannerConnection;
@@ -168,12 +171,13 @@ import static at.ac.tuwien.caa.docscan.ui.document.CreateDocumentActivity.DOCUME
 
 public class CameraActivity extends BaseNavigationActivity implements TaskTimer.TimerCallbacks,
         CameraPreview.CVCallback, CameraPreview.CameraPreviewCallback, CVResult.CVResultCallback,
-        PopupMenu.OnMenuItemClickListener, AdapterView.OnItemSelectedListener {
+        PopupMenu.OnMenuItemClickListener, AdapterView.OnItemSelectedListener, SensorEventListener {
 
     private static final String CLASS_NAME = "CameraActivity";
     private static final String FLASH_MODE_KEY = "flashMode"; // used for saving the current flash status
     private static final String DEBUG_VIEW_FRAGMENT = "DebugViewFragment";
     private static final String KEY_SHOW_EXPOSURE_LOCK_WARNING = "KEY_SHOW_EXPOSURE_LOCK_WARNING";
+    private static final String KEY_SHOW_CALIBRATION_DIALOG = "KEY_SHOW_CALIBRATION_WARNING";
     private static final int PERMISSION_READ_EXTERNAL_STORAGE = 0;
     private static final int PERMISSION_WRITE_EXTERNAL_STORAGE = 1;
     private static final int PERMISSION_ACCESS_FINE_LOCATION = 2;
@@ -182,6 +186,7 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
     @SuppressWarnings("deprecation")
     private Camera.PictureCallback mPictureCallback;
     private ImageButton mGalleryButton;
+    private AppCompatImageButton mCalibrateButton;
     private AppCompatButton mForceShootButton;
     private TaskTimer mTaskTimer;
     private CameraPreview mCameraPreview;
@@ -199,7 +204,7 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
     private boolean mIsPictureSafe;
     private TextView mTextView;
     private MenuItem mFlashMenuItem, mDocumentMenuItem, mGalleryMenuItem, mUploadMenuItem,
-            mWhiteBalanceMenuItem, mLockExposureMenuItem, mUnlockExposureMenuItem;
+            mWhiteBalanceMenuItem, mLockExposureMenuItem, mUnlockExposureMenuItem, mEnableSpiritLevelItem, mDisableSpiritLevelItem;
     private Drawable mFlashOffDrawable, mFlashOnDrawable, mFlashAutoDrawable, mFlashTorchDrawable;
     private boolean mIsSeriesMode = false;
     private boolean mIsSeriesModePaused = true;
@@ -214,6 +219,24 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
     private TaskTimer.TimerCallbacks mTimerCallbacks;
     private static Date mLastTimeStamp;
     private DkPolyRect[] mLastDkPolyRects;
+
+    //declaration of variables for spirit level
+    private SensorManager sensorManager;
+    private Sensor accelerometer;
+    private Sensor magneticField;
+    private float[] orientations;
+    private float[] gData = new float[3]; // accelerometer
+    private float[] mData = new float[3]; // magnetometer
+    private float[] rMat = new float[9];
+    private long lastUpdateTime;
+    private static final float ALPHA = 0.5f;
+    private static final int TIME_INTERVAL = 100;
+    private float calibratedX;
+    private float calibratedY;
+    private boolean calibrationClicked;
+
+
+    private AppCompatImageButton calibrate_button;
 
     private OrientationEventListener mOrientationListener;
 
@@ -395,6 +418,9 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
         if (lockExposureTextView != null)
             lockExposureTextView.setVisibility(View.INVISIBLE);
 
+        sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_NORMAL);
+        sensorManager.registerListener(this, magneticField, SensorManager.SENSOR_DELAY_NORMAL);
+
     }
 
     private void showControlsLayout(boolean showControls) {
@@ -519,16 +545,22 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
         mTaskTimer = new TaskTimer();
 
 
+
 //        initCameraControlLayout();
 
         initDrawables();
         initPictureCallback();
         initButtons();
 
+        orientations = new float[3];
+
         requestLocation();
 
 //        Check app version:
         checkAppVersion();
+
+        initSensors();
+
 
     }
 
@@ -671,6 +703,9 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
         mWhiteBalanceMenuItem = menu.findItem(R.id.white_balance_item);
         mLockExposureMenuItem = menu.findItem(R.id.lock_exposure_item);
         mUnlockExposureMenuItem = menu.findItem(R.id.unlock_exposure_item);
+        mEnableSpiritLevelItem = menu.findItem(R.id.enable_spirit_level_item);
+        mDisableSpiritLevelItem = menu.findItem(R.id.disable_spirit_level_item);
+
 
         inflater.inflate(R.menu.white_balance_menu, mWhiteBalanceMenuItem.getSubMenu());
 
@@ -920,6 +955,7 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
         initCancelQRButton();
         initForceShootButton();
         initHudButton();
+        initCalibrateButton();
 
     }
 
@@ -2057,7 +2093,7 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
 
 //    public void showSeriesPopup(MenuItem item) {
 //
-//        View menuItemView = findViewById(R.id.document_item);
+ //        View menuItemView = findViewById(R.id.document_item);
 //        if (menuItemView == null)
 //            return;
 //
@@ -2523,7 +2559,217 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
         return NavigationDrawer.NavigationItemEnum.CAMERA;
     }
 
+    //---*-*-*-*-*-*-*-*-*-*-*-*-* BOJANA -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-**-*-*
 
+    private void initCalibrateButton(){
+        mCalibrateButton =  findViewById(R.id.calibrate_button);
+        mCalibrateButton.setBackgroundDrawable(null);
+
+        mCalibrateButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                calibrationClicked = true;
+            }
+        });
+    }
+
+    private void initSensors(){
+        //initialize magnetic field and accelerometer sensors
+        sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+        if (sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER) != null) {
+            // success! we have an accelerometer
+
+            accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+            sensorManager.registerListener(this, accelerometer,SensorManager.SENSOR_DELAY_NORMAL);
+
+        } else {
+            // fail! we don't have an accelerometer!
+        }
+
+        if (sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD) != null) {
+            //success! we have a magnetic field sensor
+
+            magneticField = sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
+            sensorManager.registerListener(this, magneticField, SensorManager.SENSOR_DELAY_NORMAL);
+        }else {
+            // fail! we don't have a magnetic field sensor!
+        }
+
+
+
+    }
+
+    @Override
+    public void onSensorChanged(SensorEvent sensorEvent) {
+
+        long currentTime = System.currentTimeMillis();
+
+        switch (sensorEvent.sensor.getType()) {
+            case Sensor.TYPE_ACCELEROMETER:
+                gData = applyLowPassFilter(sensorEvent.values.clone(), gData);
+                break;
+            case Sensor.TYPE_MAGNETIC_FIELD:
+                mData = applyLowPassFilter(sensorEvent.values.clone(), mData);
+                break;
+            default:
+                return;
+        }
+        if(currentTime - lastUpdateTime > TIME_INTERVAL) {
+            if (gData != null && mData != null) {
+
+                float[] outR = new float[9];
+                if (SensorManager.getRotationMatrix(rMat, outR, gData, mData)) {
+                    SensorManager.getOrientation(rMat, orientations);
+                    if (gData[2] < 0) {
+                        if (orientations[1] > 0) {
+                            orientations[1] = (float) (Math.PI - orientations[1]);
+                        } else {
+                            orientations[1] = (float) (-Math.PI - orientations[1]);
+                        }
+                    }
+                    changeRadiansToDegrees(orientations);
+
+                    if (calibrationClicked) {
+                        doCalibrate(orientations);
+                    }
+                    if (calibratedX != 0 || calibratedY != 0) {
+                        updateCalibratedOrientationAngles(orientations);
+                    }
+                    lastUpdateTime = currentTime;
+                    updateOrientation();
+                }
+            }
+        }
+
+
+    }
+
+    @Override
+    public void onAccuracyChanged(Sensor sensor, int i) {
+
+    }
+
+    private void updateOrientation(){
+        mPaintView.setOrientation(orientations);
+    }
+
+    //applyLowPassFilter() solves the problem of jittery(noisy) sensor output
+    private float[] applyLowPassFilter(float[] input, float[] output) {
+        if ( output == null ) return input;
+
+        for ( int i=0; i<input.length; i++ ) {
+            output[i] = output[i] + ALPHA * (input[i] - output[i]);
+        }
+        return output;
+    }
+
+    //changeRadiansToDegrees() translates sensor output from radians to degrees
+    private void changeRadiansToDegrees(float[] orientations){
+        orientations[0] = (float) Math.toDegrees(orientations[0]);
+        orientations[1] = (float) Math.toDegrees(orientations[1]);
+        orientations[2] = (float) Math.toDegrees(orientations[2]);
+    }
+
+    //doCalibrate() stores calibration parameters
+    private void doCalibrate(float[] orientations) {
+        calibratedX = orientations[1];
+        calibratedY = orientations[2];
+        calibrationClicked = false;
+    }
+
+    //updateCalibratedOrientationAngles() calculates phone orientation depending on calibration values
+    private void updateCalibratedOrientationAngles(float[] orientations) {
+
+        //calibration of pitch (vertical line)
+        orientations[1] = orientations[1] - calibratedX;
+
+        if (orientations[1] < -180) {
+            orientations[1] = 180 + (orientations[1] + 180);
+        } else if (orientations[1] > 180) {
+            orientations[1] = -180 + (orientations[1] - 180);
+        }
+
+        //calibration of roll (horizontal line)
+        orientations[2] = orientations[2] - calibratedY;
+
+        if (orientations[2] > 180) {
+            orientations[2] = -180 + (orientations[2] - 180);
+        }else if (orientations[2] < -180) {
+            orientations[2] = 180 + (orientations[0] + 180);
+        }
+    }
+
+    public void enableSpiritLevel(MenuItem item){
+
+        if (mCameraPreview != null) {
+            showCalibrationDialog();
+            mCalibrateButton.setEnabled(true);
+            mCalibrateButton.setVisibility(View.VISIBLE);
+
+            if (mPaintView != null)
+                mPaintView.drawRulers(true);
+
+            if (mEnableSpiritLevelItem != null)
+                mEnableSpiritLevelItem.setVisible(false);
+            if (mDisableSpiritLevelItem != null)
+                mDisableSpiritLevelItem.setVisible(true);
+
+        }
+
+    }
+    public void disableSpiritLevel(MenuItem item){
+        if (mCameraPreview != null) {
+            mCalibrateButton.setEnabled(false);
+            mCalibrateButton.setVisibility(View.INVISIBLE);
+
+            if (mPaintView != null)
+                mPaintView.drawRulers(false);
+
+            if (mEnableSpiritLevelItem != null)
+                mEnableSpiritLevelItem.setVisible(true);
+            if (mDisableSpiritLevelItem != null)
+                mDisableSpiritLevelItem.setVisible(false);
+
+        }
+
+    }
+
+    private void showCalibrationDialog() {
+
+        final SharedPreferences sharedPref = android.support.v7.preference.PreferenceManager.
+                getDefaultSharedPreferences(this);
+        boolean showDialog = sharedPref.getBoolean(KEY_SHOW_CALIBRATION_DIALOG, true);
+
+        if (!showDialog)
+            return;
+
+        AlertDialog.Builder alertDialog = new AlertDialog.Builder(this);
+        LayoutInflater adbInflater = LayoutInflater.from(this);
+        View eulaLayout = adbInflater.inflate(R.layout.calibration_dialog, null);
+
+        final CheckBox checkBox = eulaLayout.findViewById(R.id.skip);
+        alertDialog.setView(eulaLayout);
+
+        alertDialog.setPositiveButton(getString(R.string.dialog_ok_button),
+                new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+
+                        if (checkBox.isChecked()) {
+                            SharedPreferences.Editor editor = sharedPref.edit();
+                            editor.putBoolean(KEY_SHOW_CALIBRATION_DIALOG, false);
+                            editor.commit();
+                        }
+                    }
+                });
+
+        alertDialog.show();
+
+    }
+
+
+
+    //---*-*-*-*-*-*-*-*-*-*-*-*-* BOJANA -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-**-*-*
 
 
     /**

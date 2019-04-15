@@ -63,10 +63,22 @@
         android:id="@+id/white_balance_item"
         android:title="@string/white_balance_text"
         android:visible="true"
-        app:showAsAction="never"
-
-        >
+        app:showAsAction="never">
         <menu></menu>
+    </item>
+    <item
+        android:id="@+id/enable_spirit_level_item"
+        android:title="@string/enable_spirit_level_item"
+        android:visible="true"
+        app:showAsAction="never"
+        android:onClick="enableSpiritLevel">
+    </item>
+    <item
+        android:id="@+id/disable_spirit_level_item"
+        android:title="@string/disable_spirit_level_item"
+        android:visible="false"
+        app:showAsAction="never"
+        android:onClick="disableSpiritLevel">
     </item>
     <!--<item-->
         <!--android:id="@+id/white_balance_sunny_item"-->

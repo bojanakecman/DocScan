@@ -131,6 +131,8 @@
     <string name="upload_item">Upload</string>
     <string name="lock_exposure_item">Lock exposure and white balance</string>
     <string name="unlock_exposure_item">Unlock exposure and white balance</string>
+    <string name="enable_spirit_level_item">Enable spirit level</string>
+    <string name="disable_spirit_level_item">Disable spirit level</string>
     <string name="white_balance_auto_text">Auto</string>
     <string name="white_balance_text">Set white balance</string>
     <string name="white_balance_sunny_text">Daylight</string>
@@ -415,6 +417,11 @@
     <string name="gallery_unfocused_info">Info</string>
     <string name="gallery_unfocused_title">Focus issues</string>
     <string name="gallery_unfocused_text">Some images appear to be not focused and should be checked. These images are marked with a red rectangle.</string>
+    <string name="spirit_level_enable">Enable</string>
+    <string name="spirit_level_disable">Disable</string>
+    <string name="calibration_description">Calibrate your device by placing it on the surface that needs to be measured and then click the calibrate button. If the device doesn\'t return accurate measurements, there is most likely problem with your device sensors that technically can\'t be solved by the app.</string>
+    <string name="calibration">Calibration</string>
+    <string name="dialog_ok_button">Ok</string>
 
 
 </resources>

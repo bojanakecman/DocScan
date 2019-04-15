@@ -25,9 +25,9 @@
             android:tag="CameraPaintFragment"
             />
 
-        <include layout="@layout/camera_controls_layout"
+        <include layout="@layout/activity_calibrate_spirit_level" />
 
-            />
+        <include layout="@layout/camera_controls_layout" />
 
     </RelativeLayout>
 
