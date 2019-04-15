@@ -79,3 +79,5 @@ api_info.txt
 /openCVLibrary/*
 /app/release
 /app/CMakeLists.txt
+
+/app/google-services.json
