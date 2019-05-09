@@ -2,7 +2,6 @@ package at.ac.tuwien.caa.docscan.gallery;
 
 import android.content.Context;
 import android.graphics.Canvas;
-import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.PointF;
@@ -64,8 +63,8 @@ public class PageImageView extends SubsamplingScaleImageView {
     public void setPoints(ArrayList<PointF> points, boolean isFocused) {
 
         mPoints = points;
-        if (!isFocused)
-            mQuadPaint.setColor(Color.RED);
+        if (!isFocused && mQuadPaint != null)
+            mQuadPaint.setColor(getResources().getColor(R.color.hud_focus_unsharp_rect_color));
 
         invalidate();
 
