@@ -50,6 +50,9 @@ import com.google.zxing.ReaderException;
 import com.google.zxing.Result;
 import com.google.zxing.common.HybridBinarizer;
 
+import org.opencv.core.Mat;
+
+import java.lang.reflect.Parameter;
 import java.security.Policy;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -99,6 +102,8 @@ public class CameraPreview  extends SurfaceView implements SurfaceHolder.Callbac
 
    // Used for the size of the auto focus area:
     private static final int FOCUS_HALF_AREA = 1000;
+
+    private static final double DISTANCE_FROM_TENT_INCHES = 19.68;
 
     private boolean isCameraInitialized;
     private String mFlashMode; // This is used to save the current flash mode, during Activity lifecycle.
@@ -1006,6 +1011,7 @@ public class CameraPreview  extends SurfaceView implements SurfaceHolder.Callbac
         mCamera = Camera.open(0);
         mCameraInfo = new Camera.CameraInfo();
         Camera.getCameraInfo(0, mCameraInfo);
+        calculateViewAngles();
 
     }
 
@@ -1030,6 +1036,20 @@ public class CameraPreview  extends SurfaceView implements SurfaceHolder.Callbac
         Log.d(CLASS_NAME, "display orientation changed: " + displayOrientation);
         Log.d(CLASS_NAME, "changed camera orientation: " + cameraOrienation);
 
+    }
+
+    public void calculateViewAngles(){
+        Camera.Parameters p = mCamera.getParameters();
+        double thetaV = Math.toRadians(p.getVerticalViewAngle());
+        double thetaH = Math.toRadians(p.getHorizontalViewAngle());
+
+        System.out.println(thetaH + "   :   " + thetaV);
+
+        double xV = 2 * DISTANCE_FROM_TENT_INCHES * Math.tan(thetaV/2);
+        double xH = 2 * DISTANCE_FROM_TENT_INCHES * Math.tan(thetaH/2);
+
+        System.out.println("BOJANA KECMAN TU SAM LALALLALALALLALALAL");
+        System.out.println(xH + "     :   " + xV);
     }
 
 
