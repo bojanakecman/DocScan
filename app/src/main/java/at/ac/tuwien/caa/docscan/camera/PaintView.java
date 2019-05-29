@@ -265,8 +265,6 @@ public class PaintView extends SurfaceView implements SurfaceHolder.Callback {
 
     }
 
-    //---*-*-*-*-*-*-*-*-*-*-*-*-* BOJANA -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-**-*-*
-
     public void drawRulers(boolean draw){
       mDrawRulers = draw;
       forceDrawUpdate();
@@ -276,8 +274,6 @@ public class PaintView extends SurfaceView implements SurfaceHolder.Callback {
         mOrientations = orientations;
         forceDrawUpdate();
     }
-
-    //---*-*-*-*-*-*-*-*-*-*-*-*-* BOJANA -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-**-*-*
 
     public void drawMovementIndicator(boolean drawMovementIndicator) {
 
@@ -360,15 +356,13 @@ public class PaintView extends SurfaceView implements SurfaceHolder.Callback {
         private final int FOCUS_SHARP_RECT_COLOR = getResources().getColor(R.color.hud_focus_sharp_rect_color);
         private final int FOCUS_UNSHARP_RECT_COLOR = getResources().getColor(R.color.hud_focus_unssharp_rect_color);
         private final int HELPER_LINE_COLOR = getResources().getColor(R.color.hud_helper_line_color);
-        private final int ALIGNED_RULER_COLOR = getResources().getColor(R.color.aligned_rulers_color);
+        private final int ALIGNED_RULER_COLOR = getResources().getColor(R.color.hud_page_rect_color);
         private final int UNALIGNED_RULER_COLOR = getResources().getColor(R.color.unaligned_rulers_color);
-        private final int ORIENTATION_INDICATION_COLOR = getResources().getColor(R.color.aligned_rulers_color);
 
 
         private Paint mFocusSharpRectPaint;
         private Paint mFocusUnsharpRectPaint;
 
-        //-*-*-*-*-*-*-*-*-*-*-*-*-*-*--*BOJANA-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-
         private Paint mHorizontalRulerPaint;
         private Paint mVerticalRulerPaint;
         private Paint mOrientationIndicatorPaint;
@@ -776,8 +770,7 @@ public class PaintView extends SurfaceView implements SurfaceHolder.Callback {
 
         }
 
-        //---*-*-*-*-*-*-*-*-*-*-*-*-* BOJANA -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-**-*-*
-        private void drawRulers(Canvas canvas) {
+         private void drawRulers(Canvas canvas) {
 
             float startXBoundary = getWidth() / 10;
             float endXBoundary = getWidth() - getWidth() / 10;
@@ -827,13 +820,13 @@ public class PaintView extends SurfaceView implements SurfaceHolder.Callback {
             if (mOrientations != null) {
 
                 if (checkIfXIsLeveled()) {
-                    mVerticalRulerPaint.setColor(PAGE_RECT_COLOR);
+                    mVerticalRulerPaint.setColor(ALIGNED_RULER_COLOR);
                 } else {
                     mVerticalRulerPaint.setColor(UNALIGNED_RULER_COLOR);
                 }
 
                 if (checkIfYIsLeveled()) {
-                    mHorizontalRulerPaint.setColor(PAGE_RECT_COLOR);
+                    mHorizontalRulerPaint.setColor(ALIGNED_RULER_COLOR);
                 } else {
                     mHorizontalRulerPaint.setColor(UNALIGNED_RULER_COLOR);
                 }
@@ -880,7 +873,6 @@ public class PaintView extends SurfaceView implements SurfaceHolder.Callback {
             return false;
         }
 
-        //---*-*-*-*-*-*-*-*-*-*-*-*-* BOJANA -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-**-*-*
     }
     /**
      * This class is used when a picture is taken.
