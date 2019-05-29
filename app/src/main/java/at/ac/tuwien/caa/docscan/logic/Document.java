@@ -14,6 +14,7 @@ public class Document {
     private boolean mIsUploaded = false;
     private boolean mIsCropped = false;
     private boolean mIsAwaitingUpload = false;
+    private int mDpi;
 
     private TranskribusMetaData mMetaData = null;
 
@@ -43,7 +44,6 @@ public class Document {
     }
 
     public void setMetaData(TranskribusMetaData metaData) {
-
         mMetaData = metaData;
 
     }
@@ -149,5 +149,21 @@ public class Document {
 
         mPages = pages;
 
+    }
+
+    public int getDpi(){
+        return mDpi;
+    }
+
+    public void setDpi(int dpi){
+        mDpi = dpi;
+        storeDpiToMetadata();
+    }
+
+    private void storeDpiToMetadata(){
+        if(mMetaData == null)
+            mMetaData = new TranskribusMetaData();
+        mMetaData.setDpi(mDpi);
+        setMetaData(mMetaData);
     }
 }

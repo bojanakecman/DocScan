@@ -47,6 +47,7 @@ public class TranskribusMetaData {
     private Date mDate;
     private String mUrl;
     private Integer mRelatedUploadId;
+    private Integer mDpi;
 
     public String getTitle() { return mTitle; }
     public void setTitle(String title) { mTitle = title; }
@@ -69,6 +70,9 @@ public class TranskribusMetaData {
     public void setAuthor(String author) { mAuthor = author; }
     public String getUrl() { return mUrl; }
     public void setUrl(String url) { mUrl = url; }
+    public Integer getDpi() { return mDpi; }
+    public void setDpi(Integer mDpi) {
+        this.mDpi = mDpi; }
 
     public TranskribusMetaData() {
 
@@ -165,6 +169,8 @@ public class TranskribusMetaData {
 
                 else if (name.equals(QR_DATE))
                     skip(parser);
+
+
 
             }
 
