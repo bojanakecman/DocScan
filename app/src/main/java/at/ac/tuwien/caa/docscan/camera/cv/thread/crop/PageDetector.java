@@ -3,7 +3,7 @@ package at.ac.tuwien.caa.docscan.camera.cv.thread.crop;
 import android.graphics.BitmapFactory;
 import android.graphics.PointF;
 import android.os.Looper;
-import android.support.media.ExifInterface;
+import androidx.exifinterface.media.ExifInterface;
 import android.util.Log;
 
 import com.crashlytics.android.Crashlytics;
@@ -19,7 +19,6 @@ import at.ac.tuwien.caa.docscan.camera.cv.NativeWrapper;
 import at.ac.tuwien.caa.docscan.camera.cv.DkPolyRect;
 import at.ac.tuwien.caa.docscan.camera.cv.DkVector;
 import at.ac.tuwien.caa.docscan.camera.cv.Patch;
-import at.ac.tuwien.caa.docscan.logic.DocumentStorage;
 
 public class PageDetector {
 
@@ -94,8 +93,14 @@ public class PageDetector {
 
         if (polyRects != null && polyRects.length > 0 && polyRects[0] != null)  {
             ArrayList<PointF> points = normPoints(polyRects[0], mg.width(), mg.height());
-            Patch[] patches = NativeWrapper.getFocusMeasures(mg);
-            boolean isSharp = isSharp(polyRects[0], patches);
+
+//            Patch[] patches = NativeWrapper.getFocusMeasures(mg);
+//            In case an error happened the result is null and we assume that the image is sharp:
+            boolean isSharp = true;
+//            Otherwise use the real patches result:
+//            if (patches != null)
+//                isSharp = isSharp(polyRects[0], patches);
+
             result = new PageFocusResult(points, isSharp);
         }
 

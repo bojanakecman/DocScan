@@ -50,20 +50,20 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
-import android.support.design.widget.NavigationView;
-import android.support.media.ExifInterface;
-import android.support.v4.app.ActivityCompat;
-import android.support.v4.app.TaskStackBuilder;
-import android.support.v4.view.GravityCompat;
-import android.support.v4.widget.DrawerLayout;
-import android.support.v7.app.ActionBar;
-import android.support.v7.app.ActionBarDrawerToggle;
-import android.support.v7.app.AlertDialog;
-import android.support.v7.content.res.AppCompatResources;
-import android.support.v7.widget.AppCompatButton;
-import android.support.v7.widget.AppCompatImageButton;
-import android.support.v7.widget.PopupMenu;
-import android.support.v7.widget.Toolbar;
+import com.google.android.material.navigation.NavigationView;
+import androidx.exifinterface.media.ExifInterface;
+import androidx.core.app.ActivityCompat;
+import androidx.core.app.TaskStackBuilder;
+import androidx.core.view.GravityCompat;
+import androidx.drawerlayout.widget.DrawerLayout;
+import androidx.appcompat.app.ActionBar;
+import androidx.appcompat.app.ActionBarDrawerToggle;
+import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.content.res.AppCompatResources;
+import androidx.appcompat.widget.AppCompatButton;
+import androidx.appcompat.widget.AppCompatImageButton;
+import androidx.appcompat.widget.PopupMenu;
+import androidx.appcompat.widget.Toolbar;
 import android.util.Log;
 import android.view.Display;
 import android.view.Gravity;
@@ -168,8 +168,7 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
     private static final int CREATE_DOCUMENT_FROM_QR_REQUEST = 0;
 
     //distance from tent in inches
-    //TODO: incorrect distance - should be changed
-    private static final double DISTANCE_FROM_TENT = 20;
+    private static final double DISTANCE_FROM_TENT = 16.535;
 
     @SuppressWarnings("deprecation")
     private Camera.PictureCallback mPictureCallback;
@@ -383,6 +382,7 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
 
         boolean useFastPageDetection = sharedPref.getBoolean(getResources().getString(R.string.key_fast_segmentation), true);
         NativeWrapper.setUseLab(!useFastPageDetection);
+
 
         mIsFocusMeasured = sharedPref.getBoolean(getResources().getString(R.string.key_focus_measure), true);
         mCVResult.setMeasureFocus(mIsFocusMeasured);
@@ -602,7 +602,7 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
 
     private void showLockedExposureDialog() {
 
-        final SharedPreferences sharedPref = android.support.v7.preference.PreferenceManager.
+        final SharedPreferences sharedPref = androidx.preference.PreferenceManager.
                 getDefaultSharedPreferences(this);
         boolean showDialog = sharedPref.getBoolean(KEY_SHOW_EXPOSURE_LOCK_WARNING, true);
         if (!showDialog)
@@ -908,12 +908,17 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
                 mTimerCallbacks.onTimerStarted(SHOT_TIME);
                 mTimerCallbacks.onTimerStopped(FLIP_SHOT_TIME);
 
-                // resume the camera again (this is necessary on the Nexus 5X, but not on the Samsung S5)
-                if (mCameraPreview.getCamera() != null && !mRetakeMode) {
-                    mCameraPreview.getCamera().startPreview();
-                    mCameraPreview.startAutoFocus();
+                try {
+                    // resume the camera again (this is necessary on the Nexus 5X, but not on the Samsung S5)
+                    if (mCameraPreview.getCamera() != null && !mRetakeMode) {
+                        mCameraPreview.getCamera().startPreview();
+                        mCameraPreview.startAutoFocus();
+                    }
                 }
-
+                catch (RuntimeException e) {
+//                    We catch this to avoid:
+//                    java.lang.RuntimeException: Camera is being used after Camera.release() was called
+                }
 
 //                try {
 //                    Thread.sleep(1000);
@@ -1438,6 +1443,9 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
         View v = ((Activity) mContext).findViewById(R.id.camera_controls_layout);
 
         WindowManager wm = (WindowManager) mContext.getSystemService(Context.WINDOW_SERVICE);
+        if (wm == null || wm.getDefaultDisplay() == null)
+            return new Point();
+
         Display display = wm.getDefaultDisplay();
         Point size = new Point();
         display.getSize(size);
@@ -1775,8 +1783,11 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
             return;
         }
 
-        if (mCVResult != null && patches != null && patches.length > 0)
+        if (mCVResult != null)
             mCVResult.setPatches(patches);
+
+//        if (mCVResult != null && patches != null && patches.length > 0)
+//            mCVResult.setPatches(patches);
 
 //        CVManager.getInstance().setNextTask(TASK_TYPE_MOVE);
 
@@ -2766,8 +2777,7 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
     }
 
     private void showCalibrationDialog() {
-
-        final SharedPreferences sharedPref = android.support.v7.preference.PreferenceManager.
+        final SharedPreferences sharedPref = androidx.preference.PreferenceManager.
                 getDefaultSharedPreferences(this);
         boolean showDialog = sharedPref.getBoolean(KEY_SHOW_CALIBRATION_DIALOG, true);
 
@@ -2818,7 +2828,7 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
             Uri uri = getFileName(mContext.getString(R.string.app_name));
             Log.d(CLASS_NAME, "FileSaver: uri " + uri);
 
-            if (uri == null)
+            if (uri == null || uri.getPath() == null)
                 return null;
 
             final File file = new File(uri.getPath());

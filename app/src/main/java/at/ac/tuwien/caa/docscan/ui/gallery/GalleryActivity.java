@@ -9,21 +9,23 @@ import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
-import android.support.design.widget.AppBarLayout;
-import android.support.design.widget.Snackbar;
-import android.support.v4.app.ActivityCompat;
-import android.support.v4.content.LocalBroadcastManager;
-import android.support.v7.app.AlertDialog;
-import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.GridLayoutManager;
-import android.support.v7.widget.RecyclerView;
-import android.support.v7.widget.Toolbar;
+import androidx.annotation.NonNull;
+import com.google.android.material.appbar.AppBarLayout;
+import com.google.android.material.snackbar.Snackbar;
+import androidx.core.app.ActivityCompat;
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
+import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.GridLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+import androidx.appcompat.widget.Toolbar;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
+
+import org.opencv.android.OpenCVLoader;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -71,6 +73,27 @@ public class GalleryActivity extends AppCompatActivity implements
 //    GalleryActivity (i.e. in the ImageViewerFragment). If something changed we need to reload the
 //    images in onResume.
     private static boolean sFileDeleted, sFileRotated, sFileCropped;
+
+    /**
+     * Static initialization of the OpenCV and docscan-native modules.
+     */
+    static {
+
+        Log.d(CLASS_NAME, "initializing OpenCV");
+
+//         We need this for Android 4:
+        if (!OpenCVLoader.initDebug()) {
+            Log.d(CLASS_NAME, "Error while initializing OpenCV.");
+        } else {
+
+            System.loadLibrary("opencv_java3");
+            System.loadLibrary("docscan-native");
+
+            Log.d(CLASS_NAME, "OpenCV initialized");
+        }
+
+    }
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -307,6 +330,8 @@ public class GalleryActivity extends AppCompatActivity implements
             Helper.crashlyticsLog(CLASS_NAME, "initAdapter", "mDocument == null");
             return;
         }
+
+        mDocument.validatePages();
 
         mAdapter = new GalleryAdapter(this, mDocument);
         mAdapter.setFileName(mFileName);
