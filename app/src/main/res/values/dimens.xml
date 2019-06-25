@@ -5,6 +5,7 @@
     <dimen name="camera_control_height_width">120dp</dimen>
     <dimen name="draw_view_focus_font_size">15sp</dimen>
     <dimen name="draw_view_counter_font_size">50sp</dimen>
+    <dimen name="orientation_indicator_font_size">15sp</dimen>
     <dimen name="instruction_view_margin_bottom">140dp</dimen>
     <dimen name="focus_stroke_width">3dp</dimen>
     <dimen name="focus_height">27dp</dimen>
@@ -21,6 +22,8 @@
     <dimen name="page_gallery_stroke_width">2.5dp</dimen>
     <dimen name="cross_stroke_width">2dp</dimen>
     <dimen name="focus_circle_stroke_width">1dp</dimen>
+    <dimen name="ruler_stroke_width">2dp</dimen>
+    <dimen name="orientation_indicator_stroke_width">2.5dp</dimen>
     <dimen name="spinner_dropdown_width">70dp</dimen>
     <dimen name="photo_button_size">80dp</dimen>
     <dimen name="gallery_progress_bar_size">35dp</dimen>

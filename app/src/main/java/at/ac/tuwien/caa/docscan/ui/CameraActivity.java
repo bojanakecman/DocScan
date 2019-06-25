@@ -34,6 +34,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
+import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Point;
@@ -50,6 +51,8 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
+
+import com.google.android.gms.common.internal.BaseGmsClient;
 import com.google.android.material.navigation.NavigationView;
 import androidx.exifinterface.media.ExifInterface;
 import androidx.core.app.ActivityCompat;
@@ -64,6 +67,8 @@ import androidx.appcompat.widget.AppCompatButton;
 import androidx.appcompat.widget.AppCompatImageButton;
 import androidx.appcompat.widget.PopupMenu;
 import androidx.appcompat.widget.Toolbar;
+
+import android.provider.MediaStore;
 import android.util.Log;
 import android.view.Display;
 import android.view.Gravity;
@@ -100,6 +105,7 @@ import org.opencv.android.OpenCVLoader;
 import org.opencv.core.Mat;
 import org.opencv.imgcodecs.Imgcodecs;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -224,12 +230,11 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
     private float calibratedY;
     private boolean calibrationClicked;
 
-
-    private AppCompatImageButton calibrate_button;
-
     private OrientationEventListener mOrientationListener;
 
     private boolean mIsQRActive = false;
+
+    private int dpi = 0;
 
 
     /**
@@ -422,6 +427,9 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
 //            is not cleared, the user would be still in retake mode.
             getIntent().removeExtra(KEY_RETAKE_IMAGE);
         }
+
+        //TODO: promijeni lokaciju gdje racunas dpi
+        dpi = calculateDPIForPrinting();
 
     }
 
@@ -2596,7 +2604,7 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
     }
 
 
-    public int calculateDPIForPrinting(final File file){
+    public int calculateDPIForPrinting() {
         //should not happen
         if (mCameraPreview.getCamera() == null)
             return -1;
@@ -2605,14 +2613,12 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
         double thetaH = Math.toRadians(p.getHorizontalViewAngle());
 
         //Print size in inches
-        double printHeight = 2*DISTANCE_FROM_TENT*Math.tan(thetaH/2);
+        double printWidth = 2 * DISTANCE_FROM_TENT * Math.tan(thetaH / 2);
 
-        Mat inputMat = Imgcodecs.imread(file.getPath());
         //File image resolution in pixels
-        double imageHeight = inputMat.height();
+        double imageWidth = p.getPictureSize().width;
 
-        int dpi = (int)(imageHeight/printHeight);
-        return dpi;
+        return (int) (imageWidth / printWidth);
 
     }
 
@@ -2833,6 +2839,8 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
 
             final File file = new File(uri.getPath());
 
+
+
             if (file == null)
                 return null;
 
@@ -2845,6 +2853,9 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
                         mProgressBar.setVisibility(View.VISIBLE);
                     }
                 });
+
+
+               // mData = setDpiToImage(mData, dpi);
 
                 FileOutputStream fos = new FileOutputStream(file);
                 fos.write(mData);
@@ -2860,17 +2871,6 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
                     boolean fileAdded = DocumentStorage.getInstance(mContext).addToActiveDocument(file);
                     if (!fileAdded) {
                         DocumentStorage.getInstance(mContext).generateDocument(file, mContext);
-                    }
-                }
-                //Save DPI for printing into active document
-                int dpi = calculateDPIForPrinting(file);
-                if(DocumentStorage.getInstance(mContext).getActiveDocument().getDpi() == 0) {
-                    DocumentStorage.getInstance(mContext).getActiveDocument().setDpi(dpi);
-                } else {
-                    //should not happen, because the distance is fixed
-                    if(DocumentStorage.getInstance(mContext).getActiveDocument().getDpi() != dpi){
-                        Log.e(CLASS_NAME, "Files inside a document have different dimensions, DPI value for document cannot be calculated");
-                        DocumentStorage.getInstance(mContext).getActiveDocument().setDpi(-1);
                     }
                 }
 
@@ -2966,10 +2966,20 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
                     exif.setAttribute(ExifInterface.TAG_GPS_LONGITUDE_REF, GPS.longitudeRef(longitude));
                 }
 
+
                 exif.saveAttributes();
+
+                System.out.println("sad mmozda");
+                System.out.println(exif.getAttribute(ExifInterface.TAG_X_RESOLUTION));
+                System.out.println(exif.getAttribute(ExifInterface.TAG_X_RESOLUTION));
+                System.out.println("vrijeme"  + exif.getAttribute(ExifInterface.TAG_DATETIME));
+                System.out.println("image l " + exif.getAttribute(ExifInterface.TAG_IMAGE_LENGTH));
+                System.out.println("orientation " + exif.getAttribute(ExifInterface.TAG_ORIENTATION));
+
 
             }
         }
+
 
 
         protected void onPostExecute(String uri) {
@@ -3043,6 +3053,27 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
         return inSampleSize;
     }
 
+
+    private static byte[] setDpiToImage(byte[] imageData, int dpi) {
+
+        BitmapFactory.Options options = new BitmapFactory.Options();
+        options.inMutable = true;
+        Bitmap bmp = BitmapFactory.decodeByteArray(imageData, 0, imageData.length, options);
+
+        ByteArrayOutputStream uploadImageByteArray = new ByteArrayOutputStream();
+        bmp.compress(Bitmap.CompressFormat.JPEG, 100, uploadImageByteArray);
+        byte[] uploadImageData = uploadImageByteArray.toByteArray();
+
+        System.out.println("evo oddje " +dpi);
+
+        uploadImageData[13] = 1;
+        uploadImageData[14] = (byte) (dpi >> 8);
+        uploadImageData[15] = (byte) (dpi & 0xff);
+        uploadImageData[16] = (byte) (dpi >> 8);
+        uploadImageData[17] = (byte) (dpi & 0xff);
+
+        return uploadImageData;
+    }
 
 
 

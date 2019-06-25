@@ -439,15 +439,15 @@ public class PaintView extends SurfaceView implements SurfaceHolder.Callback {
             mFocusTouchOutlinePaint.setAntiAlias(true);
 
             mHorizontalRulerPaint = new Paint();
-            mHorizontalRulerPaint.setStrokeWidth(4);
+            mHorizontalRulerPaint.setStrokeWidth(getResources().getDimension(R.dimen.ruler_stroke_width));
 
             mVerticalRulerPaint = new Paint();
-            mVerticalRulerPaint.setStrokeWidth(4);
+            mVerticalRulerPaint.setStrokeWidth(getResources().getDimension(R.dimen.ruler_stroke_width));
 
             mOrientationIndicatorPaint = new Paint();
-            mOrientationIndicatorPaint.setStrokeWidth(4);
+            mOrientationIndicatorPaint.setStrokeWidth(getResources().getDimension(R.dimen.orientation_indicator_stroke_width));
             mOrientationIndicatorPaint.setColor(PAGE_RECT_COLOR);
-            mOrientationIndicatorPaint.setTextSize(40f);
+            mOrientationIndicatorPaint.setTextSize(getResources().getDimension(R.dimen.orientation_indicator_font_size));
 
 
         }

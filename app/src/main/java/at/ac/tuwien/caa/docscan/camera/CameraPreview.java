@@ -307,6 +307,7 @@ public class CameraPreview  extends SurfaceView implements SurfaceHolder.Callbac
         void onFocusTouch(PointF point);
         void onFocusTouchSuccess();
 
+
     }
 
 
