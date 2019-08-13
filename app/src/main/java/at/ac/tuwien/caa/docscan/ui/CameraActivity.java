@@ -1126,6 +1126,14 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
         showToastText(msg);
     }
 
+    private void showCalibrationToast() {
+
+        int msg = R.string.toast_device_calibrated;
+
+        showToastText(msg);
+    }
+
+
     private void updateShootModeSpinner() {
 
         Spinner shootModeSpinner = findViewById(R.id.shoot_mode_spinner);
@@ -2593,7 +2601,6 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
 
     private void initCalibrateButton() {
         mCalibrateButton = findViewById(R.id.calibrate_button);
-        mCalibrateButton.setBackgroundDrawable(null);
 
         mCalibrateButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -2723,6 +2730,7 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
         calibratedX = orientations[1];
         calibratedY = orientations[2];
         calibrationClicked = false;
+        showCalibrationToast();
     }
 
     //updateCalibratedOrientationAngles() calculates phone orientation depending on calibration values
@@ -2854,10 +2862,16 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
                     }
                 });
 
-
-               // mData = setDpiToImage(mData, dpi);
-
                 FileOutputStream fos = new FileOutputStream(file);
+
+                //BOJANA 1
+/*
+                BitmapFactory.Options options = new BitmapFactory.Options();
+                options.inJustDecodeBounds = true;
+                Bitmap bmp = BitmapFactory.decodeStream(new FileInputStream(file), null, options);
+
+                mData = setDpiToImage(mData, dpi);*/
+
                 fos.write(mData);
 
                 fos.close();
@@ -2969,9 +2983,11 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
 
                 exif.saveAttributes();
 
+
+                //BOJANA POCINJE
                 System.out.println("sad mmozda");
                 System.out.println(exif.getAttribute(ExifInterface.TAG_X_RESOLUTION));
-                System.out.println(exif.getAttribute(ExifInterface.TAG_X_RESOLUTION));
+                System.out.println(exif.getAttribute(ExifInterface.TAG_Y_RESOLUTION));
                 System.out.println("vrijeme"  + exif.getAttribute(ExifInterface.TAG_DATETIME));
                 System.out.println("image l " + exif.getAttribute(ExifInterface.TAG_IMAGE_LENGTH));
                 System.out.println("orientation " + exif.getAttribute(ExifInterface.TAG_ORIENTATION));
@@ -3054,17 +3070,13 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
     }
 
 
-    private static byte[] setDpiToImage(byte[] imageData, int dpi) {
+    private static byte[] setDpiToImage(byte[] uploadImageData, int dpi) {
 
-        BitmapFactory.Options options = new BitmapFactory.Options();
-        options.inMutable = true;
-        Bitmap bmp = BitmapFactory.decodeByteArray(imageData, 0, imageData.length, options);
+        System.out.println("evo ovdje " +dpi);
+        System.out.println();
 
-        ByteArrayOutputStream uploadImageByteArray = new ByteArrayOutputStream();
-        bmp.compress(Bitmap.CompressFormat.JPEG, 100, uploadImageByteArray);
-        byte[] uploadImageData = uploadImageByteArray.toByteArray();
-
-        System.out.println("evo oddje " +dpi);
+        System.out.println(uploadImageData[14] + "   " +
+        uploadImageData[15]);
 
         uploadImageData[13] = 1;
         uploadImageData[14] = (byte) (dpi >> 8);

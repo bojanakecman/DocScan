@@ -319,7 +319,7 @@ public class Helper {
                         ExifInterface.TAG_Y_CB_CR_COEFFICIENTS,
                         ExifInterface.TAG_Y_CB_CR_POSITIONING,
                         ExifInterface.TAG_Y_CB_CR_SUB_SAMPLING,
-//                        ExifInterface.TAG_Y_RESOLUTION,
+ //                       ExifInterface.TAG_Y_RESOLUTION,
 
                 };
 
@@ -327,6 +327,7 @@ public class Helper {
 
         for (int i = 0; i < attributes.length; i++)
         {
+
             String value = exif.getAttribute(attributes[i]);
             if (value != null)
                 newExif.setAttribute(attributes[i], value);
