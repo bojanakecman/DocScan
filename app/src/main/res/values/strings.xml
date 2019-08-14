@@ -388,7 +388,8 @@
     <string name="gallery_unfocused_text">Some images appear to be not focused and should be checked and eventually be replaced. These images are marked with a red rectangle.</string>
     <string name="spirit_level_enable">Enable</string>
     <string name="spirit_level_disable">Disable</string>
-    <string name="calibration_description">Calibrate your device by placing it on the surface that needs to be measured and then click the calibrate button. If the device doesn\'t return accurate measurements, there is most likely problem with your device sensors that technically can\'t be solved by the app.</string>
+    <string name="calibration_description">To get an accurate device orientation, calibrate your device by placing it on top of the tent and then click the calibration button. Use this feature to adjust the document according to the position of your device. \n\nIf the device doesn\'t return accurate measurements, there is most likely problem with the sensors that technically can\'t be solved by the app.</string>
+
     <string name="calibration">Calibration</string>
     <string name="dialog_ok_button">Ok</string>
 
