@@ -261,6 +261,7 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
     private boolean mItemSelectedAutomatically = false;
     private int mLastDisplayRotation = -1;
     private boolean mIsFocusMeasured;
+//    private boolean mIsAggressiveAutoFocus = false;
 
 
     // ================= start: methods from the Activity lifecycle =================
@@ -379,19 +380,39 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
 
         SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
 
-        boolean showFocusValues = sharedPref.getBoolean(getResources().getString(R.string.key_show_focus_values), false);
+        boolean showFocusValues = sharedPref.getBoolean(getResources().getString(
+                R.string.key_show_focus_values), false);
         mPaintView.drawFocusText(showFocusValues);
 
         boolean showGrid = sharedPref.getBoolean(getResources().getString(R.string.key_show_grid), false);
         mPaintView.drawGrid(showGrid);
 
-        boolean useFastPageDetection = sharedPref.getBoolean(getResources().getString(R.string.key_fast_segmentation), true);
+        boolean useFastPageDetection = sharedPref.getBoolean(getResources().getString(
+                R.string.key_fast_segmentation), true);
         NativeWrapper.setUseLab(!useFastPageDetection);
-
 
         mIsFocusMeasured = sharedPref.getBoolean(getResources().getString(R.string.key_focus_measure), true);
         mCVResult.setMeasureFocus(mIsFocusMeasured);
         IPManager.getInstance().setIsFocusMeasured(mIsFocusMeasured);
+
+
+//        mIsAggressiveAutoFocus = sharedPref.getBoolean(getResources().getString(
+//                R.string.key_aggressive_autofocus), false);
+//        IPManager.getInstance().setIsAggressiveAutoFocus(mIsAggressiveAutoFocus);
+//        if (mIsAggressiveAutoFocus)
+//            mCameraPreview.initAggressiveAutoFocus();
+
+////        Initialize the (auto) focus:
+//        if (!mIsSeriesMode)
+//            mCameraPreview.startContinousFocus();
+//        else {
+////            if (mIsAggressiveAutoFocus)
+//                mCameraPreview.startAutoFocus();
+////            else
+////                mCameraPreview.startContinousFocus();
+//        }
+
+
 
 
         boolean isDebugViewShown = sharedPref.getBoolean(getResources().getString(R.string.key_show_debug_view), false);
@@ -676,7 +697,6 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
     /**
      * This function accesses the hardware buttons (like volume buttons). We need this access,
      * because shutter remotes emulate such a key press over bluetooth.
-     *
      * @param keyCode
      * @param event
      * @return
@@ -920,7 +940,6 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
                     // resume the camera again (this is necessary on the Nexus 5X, but not on the Samsung S5)
                     if (mCameraPreview.getCamera() != null && !mRetakeMode) {
                         mCameraPreview.getCamera().startPreview();
-                        mCameraPreview.startAutoFocus();
                     }
                 }
                 catch (RuntimeException e) {
@@ -968,6 +987,9 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
 //                            if (mIsSeriesMode && !mIsSeriesModePaused &&  !mHideSeriesDialog)
 //                                startDocumentActivity();
                         } else if (mIsPictureSafe) {
+//                            In manual mode remove the focus point:
+                            if (mCameraPreview != null)
+                                mCameraPreview.startContinousFocus();
                             // get an image from the camera
                             takePicture();
                         }
@@ -1096,6 +1118,7 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
             mCameraPreview.startAutoFocus();
         } else if (position != SERIES_POS && mIsSeriesMode) {
             mIsSeriesMode = false;
+            mCameraPreview.startContinousFocus();
             mPaintView.drawMovementIndicator(false); // This is necessary to prevent a drawing of the movement indicator
         }
 
@@ -1107,6 +1130,7 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
         }
 
         mItemSelectedAutomatically = false;
+
 
 
     }
@@ -1376,7 +1400,6 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
      * Called after configuration changes -> This includes also orientation change. By handling
      * orientation changes by ourselves, we can prevent a restart of the camera, which results in a
      * speedup.
-     *
      * @param newConfig new configuration
      */
     @Override
@@ -1895,6 +1918,7 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
     public void onMeasuredDimensionChange(int width, int height) {
 
         mCVResult.setViewDimensions(width, height);
+        Log.d(CLASS_NAME, "onMeasuredDimensionChange: " + width + " + " + height);
 
     }
 
@@ -1924,6 +1948,21 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
                 mLockExposureMenuItem.setVisible(false);
         }
 
+
+    }
+
+    @Override
+    public void onFocused(boolean focused) {
+
+        Log.d(CLASS_NAME, "onFocused: " + focused);
+
+        if (!focused)
+            setInstructionText(getString(R.string.instruction_no_auto_focus));
+        else
+            setInstructionText("");
+
+        if (mIsSeriesMode && focused)
+            IPManager.getInstance().setProcessFrame(true);
 
     }
 
@@ -2016,16 +2055,25 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
     }
 
 
+
     @Override
-    public void onWaitingForDoc(boolean waiting) {
+    public void onWaitingForDoc(boolean waiting, boolean doAutoFocus) {
 
         if (mIsSeriesModePaused) {
             displaySeriesModePaused();
             return;
         }
 
+//        if (waiting)
+//            setTextViewText(R.string.instruction_no_changes);
+//        else if (mIsAggressiveAutoFocus)
+//            mCameraPreview.focusOnPoint();
+
         if (waiting)
             setTextViewText(R.string.instruction_no_changes);
+        else if (doAutoFocus)
+            mCameraPreview.focusOnPoint();
+
 
     }
 
@@ -2386,6 +2434,11 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
         mCameraOrientation = cameraOrientation;
         mCVResult.setFrameDimensions(width, height, cameraOrientation);
 
+//        if (mIsSeriesMode)
+//            mCameraPreview.startAutoFocus();
+//        else
+//            mCameraPreview.startContinousFocus();
+
         CameraPaintLayout l = findViewById(R.id.camera_paint_layout);
         if (l != null)
             l.setFrameDimensions(width, height);
@@ -2396,6 +2449,11 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
         View v = findViewById(R.id.camera_controls_layout);
         if ((v != null) && (!mCameraPreview.isPreviewFitting()))
             v.setBackgroundColor(getResources().getColor(R.color.control_background_color_transparent));
+
+        if (mIsSeriesMode)
+            mCameraPreview.startAutoFocus();
+        else
+            mCameraPreview.startContinousFocus();
 
 ////        Make the actionbar opaque in case the preview does not fit the entire screen
 ////        Note: this is especially for markus oneplus not tested on other devices yet:
@@ -2422,7 +2480,6 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
 
     /**
      * Called after the the status of the CVResult object is changed.
-     *
      * @param state state of the CVResult
      */
     @Override
@@ -2488,7 +2545,6 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
 
     /**
      * Returns instruction messages, depending on the current state of the CVResult object.
-     *
      * @param state state of the CVResult object
      * @return instruction message
      */
@@ -2985,7 +3041,6 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
                     exif.setAttribute(ExifInterface.TAG_GPS_LONGITUDE_REF, GPS.longitudeRef(longitude));
                 }
 
-
                 exif.saveAttributes();
 
 
@@ -3041,8 +3096,6 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
             // Decode bitmap with inSampleSize set
             options.inJustDecodeBounds = false;
             return BitmapFactory.decodeStream(new FileInputStream(f), null, options);
-
-
 
         } catch (FileNotFoundException e) {
             Crashlytics.logException(e);

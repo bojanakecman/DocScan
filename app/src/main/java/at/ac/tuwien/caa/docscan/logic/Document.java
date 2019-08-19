@@ -32,6 +32,8 @@ public class Document {
 
     public void validatePages() {
 
+        if (mPages == null)
+            return;
 
         Iterator<Page> it = mPages.iterator();
         while (it.hasNext()) {
