@@ -2625,6 +2625,10 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
         //File image resolution in pixels
         double imageWidth = p.getPictureSize().width;
 
+        double imageHeight = p.getPictureSize().height;
+
+        System.out.println("eto ih: " + imageHeight + "   " + imageWidth);
+
         return (int) (imageWidth / printWidth);
 
     }
@@ -2869,12 +2873,13 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
                 BitmapFactory.Options options = new BitmapFactory.Options();
                 options.inJustDecodeBounds = true;
                 Bitmap bmp = BitmapFactory.decodeStream(new FileInputStream(file), null, options);
+                */
 
-                mData = setDpiToImage(mData, dpi);*/
 
                 fos.write(mData);
 
                 fos.close();
+
 
                 // Save exif information (especially the orientation):
                 saveExif(file);
@@ -2988,9 +2993,6 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
                 System.out.println("sad mmozda");
                 System.out.println(exif.getAttribute(ExifInterface.TAG_X_RESOLUTION));
                 System.out.println(exif.getAttribute(ExifInterface.TAG_Y_RESOLUTION));
-                System.out.println("vrijeme"  + exif.getAttribute(ExifInterface.TAG_DATETIME));
-                System.out.println("image l " + exif.getAttribute(ExifInterface.TAG_IMAGE_LENGTH));
-                System.out.println("orientation " + exif.getAttribute(ExifInterface.TAG_ORIENTATION));
 
 
             }
@@ -3040,6 +3042,8 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
             options.inJustDecodeBounds = false;
             return BitmapFactory.decodeStream(new FileInputStream(f), null, options);
 
+
+
         } catch (FileNotFoundException e) {
             Crashlytics.logException(e);
         }
@@ -3070,19 +3074,25 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
     }
 
 
-    private static byte[] setDpiToImage(byte[] uploadImageData, int dpi) {
+    private static byte[] setDpiToImage(Bitmap input, int dpi) {
 
-        System.out.println("evo ovdje " +dpi);
-        System.out.println();
+        ByteArrayOutputStream uploadImageByteArray = new ByteArrayOutputStream();
+        input.compress(Bitmap.CompressFormat.JPEG, 100, uploadImageByteArray);
+        byte[] uploadImageData = uploadImageByteArray.toByteArray();
 
-        System.out.println(uploadImageData[14] + "   " +
-        uploadImageData[15]);
+        long firstPart = dpi >> 8;
+
+        long lastPart = dpi & 0xff;
+
+
+        System.out.println(uploadImageData.length
+        );
 
         uploadImageData[13] = 1;
-        uploadImageData[14] = (byte) (dpi >> 8);
-        uploadImageData[15] = (byte) (dpi & 0xff);
-        uploadImageData[16] = (byte) (dpi >> 8);
-        uploadImageData[17] = (byte) (dpi & 0xff);
+        uploadImageData[14] = (byte) firstPart;
+        uploadImageData[15] = (byte) lastPart;
+        uploadImageData[16] = (byte) firstPart;
+        uploadImageData[17] = (byte) lastPart;
 
         return uploadImageData;
     }
