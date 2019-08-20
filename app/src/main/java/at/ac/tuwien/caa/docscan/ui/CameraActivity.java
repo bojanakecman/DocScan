@@ -135,6 +135,7 @@ import at.ac.tuwien.caa.docscan.glidemodule.GlideApp;
 import at.ac.tuwien.caa.docscan.logic.Document;
 import at.ac.tuwien.caa.docscan.logic.DocumentMigrator;
 import at.ac.tuwien.caa.docscan.logic.DocumentStorage;
+import at.ac.tuwien.caa.docscan.logic.IlluminationCorrection;
 import at.ac.tuwien.caa.docscan.ui.document.CreateDocumentActivity;
 import at.ac.tuwien.caa.docscan.ui.document.EditDocumentActivity;
 import at.ac.tuwien.caa.docscan.ui.document.SelectDocumentActivity;
@@ -199,7 +200,7 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
     private boolean mIsPictureSafe;
     private TextView mTextView;
     private MenuItem mFlashMenuItem, mDocumentMenuItem, mGalleryMenuItem, mUploadMenuItem,
-            mWhiteBalanceMenuItem, mLockExposureMenuItem, mUnlockExposureMenuItem, mEnableSpiritLevelItem, mDisableSpiritLevelItem;
+            mWhiteBalanceMenuItem, mLockExposureMenuItem, mUnlockExposureMenuItem, mEnableSpiritLevelItem, mDisableSpiritLevelItem, mEnableIlluminationCorrectionItem, mDisableIlluminationCorrectionItem;
     private Drawable mFlashOffDrawable, mFlashOnDrawable, mFlashAutoDrawable, mFlashTorchDrawable;
     private boolean mIsSeriesMode = false;
     private boolean mIsSeriesModePaused = true;
@@ -235,6 +236,10 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
     private boolean mIsQRActive = false;
 
     private int dpi = 0;
+
+    private boolean mCorrectIllumination = false;
+    private  boolean mTakeReferenceImage = false;
+
 
 
     /**
@@ -731,6 +736,8 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
         mUnlockExposureMenuItem = menu.findItem(R.id.unlock_exposure_item);
         mEnableSpiritLevelItem = menu.findItem(R.id.enable_spirit_level_item);
         mDisableSpiritLevelItem = menu.findItem(R.id.disable_spirit_level_item);
+        mEnableIlluminationCorrectionItem = menu.findItem(R.id.enable_illumination_correction_item);
+        mDisableIlluminationCorrectionItem = menu.findItem(R.id.disable_illumination_correction_item);
 
 
 //        inflater.inflate(R.menu.white_balance_menu, mWhiteBalanceMenuItem.getSubMenu());
@@ -2922,6 +2929,23 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
                     }
                 });
 
+
+                if(mCorrectIllumination) {
+                    if(mTakeReferenceImage) {
+                        IlluminationCorrection.getInstance().calculateCorrectionFactors(mData);
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                showReferenceImageTakenConfirmation();
+                            }
+                        });
+
+                    }else if(IlluminationCorrection.getInstance().isCorrectionFactorsSet())
+                        mData = IlluminationCorrection.getInstance().antivignetting(mData);
+
+                }
+
+
                 FileOutputStream fos = new FileOutputStream(file);
 
                 //BOJANA 1
@@ -3080,6 +3104,78 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
 
     }
 
+    public void enableIlluminationCorrection(MenuItem item) {
+
+        if (mCameraPreview != null) {
+
+            mCorrectIllumination = true;
+            showShadowRemovalDialog();
+
+            if (mEnableIlluminationCorrectionItem != null)
+                mEnableIlluminationCorrectionItem.setVisible(false);
+            if (mDisableIlluminationCorrectionItem != null)
+                mDisableIlluminationCorrectionItem.setVisible(true);
+
+        }
+
+    }
+
+
+    public void disableIlluminationCorrection(MenuItem item) {
+
+        if (mCameraPreview != null) {
+
+            mCorrectIllumination = false;
+
+            if (mEnableIlluminationCorrectionItem != null)
+                mEnableIlluminationCorrectionItem.setVisible(true);
+            if (mDisableIlluminationCorrectionItem != null)
+                mDisableIlluminationCorrectionItem.setVisible(false);
+
+        }
+
+    }
+
+    private void showShadowRemovalDialog() {
+
+        final AlertDialog.Builder alertDialog = new AlertDialog.Builder(this);
+        LayoutInflater adbInflater = LayoutInflater.from(this);
+        View eulaLayout = adbInflater.inflate(R.layout.illumination_correction_instructions_dialog, null);
+
+        alertDialog.setView(eulaLayout);
+
+        alertDialog.setPositiveButton(getString(R.string.dialog_take_picture_button),
+                new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        mTakeReferenceImage = true;
+                    }
+                });
+
+        alertDialog.show();
+
+    }
+
+    private void showReferenceImageTakenConfirmation() {
+
+        final AlertDialog.Builder alertDialog = new AlertDialog.Builder(this);
+        LayoutInflater adbInflater = LayoutInflater.from(this);
+        View eulaLayout = adbInflater.inflate(R.layout.reference_image_taken_confirmation_dialog, null);
+
+        alertDialog.setView(eulaLayout);
+
+        alertDialog.setPositiveButton(getString(R.string.dialog_precede_button),
+                new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        mTakeReferenceImage = false;
+                    }
+                });
+
+        alertDialog.show();
+
+    }
+
 
     private static Bitmap decodeFile(File f, int width, int height) {
         try {
@@ -3125,6 +3221,7 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
 
         return inSampleSize;
     }
+
 
 
     private static byte[] setDpiToImage(Bitmap input, int dpi) {

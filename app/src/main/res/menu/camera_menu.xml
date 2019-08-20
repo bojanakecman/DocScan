@@ -88,6 +88,20 @@
         app:showAsAction="never"
         android:onClick="disableSpiritLevel">
     </item>
+    <item
+        android:id="@+id/enable_illumination_correction_item"
+        android:title="@string/enable_illumination_correction_item"
+        android:visible="true"
+        app:showAsAction="never"
+        android:onClick="enableIlluminationCorrection">
+    </item>
+    <item
+        android:id="@+id/disable_illumination_correction_item"
+        android:title="@string/disable_illumination_correction_item"
+        android:visible="false"
+        app:showAsAction="never"
+        android:onClick="disableIlluminationCorrection">
+    </item>
     <!--<item-->
         <!--android:id="@+id/show_grid_item"-->
         <!--android:title="@string/unlock_exposure_item"-->
