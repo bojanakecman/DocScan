@@ -70,6 +70,7 @@ import androidx.appcompat.widget.Toolbar;
 
 import android.provider.MediaStore;
 import android.util.Log;
+import android.util.Rational;
 import android.view.Display;
 import android.view.Gravity;
 import android.view.KeyEvent;
@@ -2674,16 +2675,17 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
 
         Camera.Parameters p = mCameraPreview.getCamera().getParameters();
         double thetaH = Math.toRadians(p.getHorizontalViewAngle());
+        double thetaV = Math.toRadians(p.getVerticalViewAngle());
 
         //Print size in inches
         double printWidth = 2 * DISTANCE_FROM_TENT * Math.tan(thetaH / 2);
+        double printHeight = 2 * DISTANCE_FROM_TENT * Math.tan(thetaV / 2);
 
         //File image resolution in pixels
         double imageWidth = p.getPictureSize().width;
 
         double imageHeight = p.getPictureSize().height;
 
-        System.out.println("eto ih: " + imageHeight + "   " + imageWidth);
 
         return (int) (imageWidth / printWidth);
 
@@ -2924,14 +2926,6 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
 
                 FileOutputStream fos = new FileOutputStream(file);
 
-                //BOJANA 1
-/*
-                BitmapFactory.Options options = new BitmapFactory.Options();
-                options.inJustDecodeBounds = true;
-                Bitmap bmp = BitmapFactory.decodeStream(new FileInputStream(file), null, options);
-                */
-
-
                 fos.write(mData);
 
                 fos.close();
@@ -3041,15 +3035,12 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
                     exif.setAttribute(ExifInterface.TAG_GPS_LONGITUDE_REF, GPS.longitudeRef(longitude));
                 }
 
+                //Save the dpi value
+                Rational r = new Rational(dpi,1);
+                exif.setAttribute(ExifInterface.TAG_X_RESOLUTION, r.toString());
+                exif.setAttribute(ExifInterface.TAG_Y_RESOLUTION, r.toString());
+
                 exif.saveAttributes();
-
-
-                //BOJANA POCINJE
-                System.out.println("sad mmozda");
-                System.out.println(exif.getAttribute(ExifInterface.TAG_X_RESOLUTION));
-                System.out.println(exif.getAttribute(ExifInterface.TAG_Y_RESOLUTION));
-
-
             }
         }
 
@@ -3127,29 +3118,8 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
     }
 
 
-    private static byte[] setDpiToImage(Bitmap input, int dpi) {
 
-        ByteArrayOutputStream uploadImageByteArray = new ByteArrayOutputStream();
-        input.compress(Bitmap.CompressFormat.JPEG, 100, uploadImageByteArray);
-        byte[] uploadImageData = uploadImageByteArray.toByteArray();
-
-        long firstPart = dpi >> 8;
-
-        long lastPart = dpi & 0xff;
-
-
-        System.out.println(uploadImageData.length
-        );
-
-        uploadImageData[13] = 1;
-        uploadImageData[14] = (byte) firstPart;
-        uploadImageData[15] = (byte) lastPart;
-        uploadImageData[16] = (byte) firstPart;
-        uploadImageData[17] = (byte) lastPart;
-
-        return uploadImageData;
     }
 
 
 
-}
