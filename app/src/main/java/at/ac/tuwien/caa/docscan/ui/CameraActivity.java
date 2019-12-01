@@ -230,6 +230,7 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
     private float calibratedX;
     private float calibratedY;
     private boolean calibrationClicked;
+    private boolean isSpiritLevelEnabled;
 
     private OrientationEventListener mOrientationListener;
 
@@ -450,6 +451,11 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
             getIntent().removeExtra(KEY_RETAKE_IMAGE);
         }
 
+        boolean showSpiritLevel = sharedPref.getBoolean(getResources().getString(R.string.key_show_spirit_level), false);
+
+        if(showSpiritLevel)
+            enableSpiritLevel(mEnableSpiritLevelItem);
+
         //TODO: promijeni lokaciju gdje racunas dpi
         dpi = calculateDPIForPrinting();
 
@@ -590,7 +596,6 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
         checkAppVersion();
 
         initSensors();
-
 
     }
 
@@ -750,7 +755,21 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
         else
             item.setTitle(getString(R.string.show_grid_item_title));
 
+        boolean showSpiritLevel = sharedPref.getBoolean(getResources().getString(R.string.key_show_spirit_level), false);
+
+        MenuItem enableSpiritLevelItem = menu.findItem(R.id.enable_spirit_level_item);
+        MenuItem disableSpiritLevelItem = menu.findItem(R.id.disable_spirit_level_item);
+        if(showSpiritLevel){
+            enableSpiritLevelItem.setVisible(false);
+            disableSpiritLevelItem.setVisible(true);
+        }else{
+            enableSpiritLevelItem.setVisible(true);
+            disableSpiritLevelItem.setVisible(false);
+        }
+
         return true;
+
+
 
     }
 
@@ -2818,9 +2837,12 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
     }
 
     public void enableSpiritLevel(MenuItem item) {
+        SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
+        boolean isOnResume = sharedPref.getBoolean(getResources().getString(R.string.key_show_spirit_level), false);
 
         if (mCameraPreview != null) {
-            showCalibrationDialog();
+            if(!isOnResume)
+                showCalibrationDialog();
             mCalibrateButton.setEnabled(true);
             mCalibrateButton.setVisibility(View.VISIBLE);
 
@@ -2832,6 +2854,9 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
             if (mDisableSpiritLevelItem != null)
                 mDisableSpiritLevelItem.setVisible(true);
 
+            SharedPreferences.Editor editor = sharedPref.edit();
+            editor.putBoolean(getResources().getString(R.string.key_show_spirit_level), true);
+            editor.commit();
         }
 
     }
@@ -2848,6 +2873,13 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
                 mEnableSpiritLevelItem.setVisible(true);
             if (mDisableSpiritLevelItem != null)
                 mDisableSpiritLevelItem.setVisible(false);
+
+            SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
+
+//        Save the new setting:
+            SharedPreferences.Editor editor = sharedPref.edit();
+            editor.putBoolean(getResources().getString(R.string.key_show_spirit_level), false);
+            editor.commit();
 
         }
     }
@@ -2877,6 +2909,7 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
                             editor.putBoolean(KEY_SHOW_CALIBRATION_DIALOG, false);
                             editor.commit();
                         }
+
                     }
                 });
 
