@@ -70,6 +70,7 @@ import androidx.appcompat.widget.Toolbar;
 
 import android.provider.MediaStore;
 import android.util.Log;
+import android.util.Rational;
 import android.view.Display;
 import android.view.Gravity;
 import android.view.KeyEvent;
@@ -3039,6 +3040,11 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
                 String exifOrientation = Integer.toString(orientation);
                 exif.setAttribute(ExifInterface.TAG_ORIENTATION, exifOrientation);
 
+//                Save dpi in x and y resolution exif tag
+                Rational r = new Rational(dpi, 1);
+                exif.setAttribute(ExifInterface.TAG_X_RESOLUTION, r.toString());
+                exif.setAttribute(ExifInterface.TAG_Y_RESOLUTION, r.toString());
+
 //                Save the docscan information:
                 exif.setAttribute(ExifInterface.TAG_SOFTWARE, getString(R.string.app_name));
 
@@ -3064,13 +3070,6 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
                 }
 
                 exif.saveAttributes();
-
-
-                //BOJANA POCINJE
-                System.out.println("sad mmozda");
-                System.out.println(exif.getAttribute(ExifInterface.TAG_X_RESOLUTION));
-                System.out.println(exif.getAttribute(ExifInterface.TAG_Y_RESOLUTION));
-
 
             }
         }
@@ -3219,32 +3218,5 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
 
         return inSampleSize;
     }
-
-
-
-    private static byte[] setDpiToImage(Bitmap input, int dpi) {
-
-        ByteArrayOutputStream uploadImageByteArray = new ByteArrayOutputStream();
-        input.compress(Bitmap.CompressFormat.JPEG, 100, uploadImageByteArray);
-        byte[] uploadImageData = uploadImageByteArray.toByteArray();
-
-        long firstPart = dpi >> 8;
-
-        long lastPart = dpi & 0xff;
-
-
-        System.out.println(uploadImageData.length
-        );
-
-        uploadImageData[13] = 1;
-        uploadImageData[14] = (byte) firstPart;
-        uploadImageData[15] = (byte) lastPart;
-        uploadImageData[16] = (byte) firstPart;
-        uploadImageData[17] = (byte) lastPart;
-
-        return uploadImageData;
-    }
-
-
 
 }

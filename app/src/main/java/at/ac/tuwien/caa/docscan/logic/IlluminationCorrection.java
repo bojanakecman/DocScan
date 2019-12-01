@@ -147,38 +147,4 @@ public class IlluminationCorrection {
         //use only green channel in RGB images
         return channels.get(1);
     }
-
-    /**
-     *
-     * @param x the sequence to pad
-     * @return If necessary, expanded sequence such that its length is an even
-     * power of 2 by adding additional zero values.
-     */
-    public static double[] padPow2(double[] x) {
-        int sizeIn = x.length;
-        double log2N = Math.log(sizeIn) / Math.log(2);
-        double ceiling = Math.ceil(log2N);
-        if (log2N < ceiling) {
-            log2N = ceiling;
-            int sizePad = (int) Math.pow(2, log2N);
-            double[] padX = new double[sizePad];
-            for (int i = 0; i < sizePad; i++) {
-                if (i < sizeIn) {
-                    padX[i] = x[i];
-                } else {
-                    padX[i] = 0;
-                }
-            }
-            return padX;
-        } else {
-            return x;
-        }
-    }
-    private double[] waveletDenoising(double[] correctionFactors){
-        double[] paddedSignal = padPow2(correctionFactors);
-        Transform transform = new Transform(new FastWaveletTransform(new Daubechies8()));
-        double[] transformedSignal = transform.forward(paddedSignal,5);
-
-        return paddedSignal;
-    }
 }
