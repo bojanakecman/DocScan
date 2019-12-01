@@ -2690,8 +2690,6 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
 
         double imageHeight = p.getPictureSize().height;
 
-        System.out.println("eto ih: " + imageHeight + "   " + imageWidth);
-
         return (int) (imageWidth / printWidth);
 
     }
