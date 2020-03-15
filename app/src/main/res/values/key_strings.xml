@@ -10,6 +10,9 @@
     <string name="key_show_focus_values">KEY_SHOW_FOCUS_VALUES</string>
     <string name="key_aggressive_autofocus">KEY_AGGRESSIVE_AUTO_FOCUS</string>
     <string name="key_show_grid">KEY_SHOW_GRID</string>
+    <string name="key_activate_illumination_correction">KEY_ACTIVATE_ILLUMINATION_CORRECTION</string>
+    <string name="key_take_reference_image">KEY_TAKE_REFERENCE_IMAGE</string>
+
     <string name="key_flash_series_mode">KEY_FLASH_SERIES_MODE</string>
     <string name="key_debug_settings">KEY_DEBUG_SETTINGS</string>
     <string name="key_exif_settings">KEY_EXIF_SETTINGS</string>

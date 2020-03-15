@@ -1,8 +1,5 @@
 package at.ac.tuwien.caa.docscan.logic;
 
-import android.graphics.Bitmap;
-
-import org.opencv.android.Utils;
 import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
@@ -10,18 +7,11 @@ import org.opencv.core.MatOfByte;
 import org.opencv.core.Size;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
-
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-
-import jwave.Transform;
-import jwave.transforms.FastWaveletTransform;
-import jwave.transforms.wavelets.daubechies.Daubechies8;
-import smile.wavelet.DaubechiesWavelet;
-import smile.wavelet.Wavelet;
+import at.ac.tuwien.caa.docscan.camera.cv.DkPolyRect;
+import at.ac.tuwien.caa.docscan.camera.cv.NativeWrapper;
 
 
 public class IlluminationCorrection {
@@ -29,6 +19,7 @@ public class IlluminationCorrection {
     private static IlluminationCorrection sInstance;
     private double[] correctionFactors;
     private boolean correctionFactorsSet = false;
+    private static final double THRESHOLD = 50.0;
 
     public static boolean isInstanceNull() {
         return sInstance == null;
@@ -37,25 +28,53 @@ public class IlluminationCorrection {
     public static IlluminationCorrection getInstance(){
         if (sInstance == null)
             sInstance = new IlluminationCorrection();
-
         return sInstance;
     }
 
     public byte[] antivignetting(byte[] inputByteStream){
         Mat mat = Imgcodecs.imdecode(new MatOfByte(inputByteStream), Imgcodecs.CV_LOAD_IMAGE_UNCHANGED);
         Mat scaledMat = scaleImage(mat,3);
+        List<Mat> channels = new ArrayList<>();
+        Core.split(scaledMat, channels);
+
         //only green channel
         if(scaledMat.channels() == 3)
             scaledMat = desaturate(scaledMat);
 
+        Mat red = channels.get(0);
+        Mat blue = channels.get(2);
+
         double[] pixelsGreen= imageToDouble(scaledMat);
+        double[] pixelRed = imageToDouble(red);
+        double[] pixelBlue = imageToDouble(blue);
         for (int i = 0; i < pixelsGreen.length; i++) {
-            pixelsGreen[i] *= correctionFactors[i];
+            if(pixelsGreen[i]>THRESHOLD || pixelRed[i]>THRESHOLD || pixelBlue[i]>THRESHOLD) {
+                pixelRed[i] *= correctionFactors[i];
+                pixelsGreen[i] *= correctionFactors[i];
+                pixelBlue[i] *= correctionFactors[i];
+            }
         }
         scaledMat.put(0,0,pixelsGreen);
+        scaledMat = scaleImage(scaledMat, (double)1/3);
         scaledMat.convertTo(scaledMat, CvType.CV_8UC1);
 
-        return convertMatToBitmapToByteArray(scaledMat);
+
+        red.put(0,0, pixelRed);
+        red = scaleImage(red, (double)1/3);
+        red.convertTo(red, CvType.CV_8UC1);
+
+        blue.put(0,0, pixelBlue);
+        blue = scaleImage(blue, (double)1/3);
+        blue.convertTo(blue, CvType.CV_8UC1);
+
+        List<Mat> result = new ArrayList<>();
+        result.add(red);
+        result.add(scaledMat);
+        result.add(blue);
+        Mat outval = new Mat();
+        Core.merge(result, outval);
+
+        return convertMatToBitmapToByteArray(outval);
     }
 
     public void calculateCorrectionFactors(byte[] inputByteStream){
@@ -72,19 +91,14 @@ public class IlluminationCorrection {
         for (int i = 0; i < pixels.length; i++) {
             correctionFactors[i] = maxValue/pixels[i];
         }
-
-        //correctionFactors = waveletDenoising(correctionFactors);
-        //LUT.put(0,0,correctionFactors);
-        //LUT = scaleImage(LUT, (double)1/3);
-        //byte[] byteArray = illustrate(scaledMat, correctionFactors);
     }
 
     private double findMaximumIlluminationIntensityValue(double[] pixels){
         double maxValue = 0;
         for (int i = 0; i < pixels.length; i++) {
-            if(pixels[i]> maxValue)
+            if(pixels[i]> maxValue) {
                 maxValue = pixels[i];
-
+            }
         }
         return maxValue;
     }
@@ -107,15 +121,23 @@ public class IlluminationCorrection {
     }
 
     private byte[] convertMatToBitmapToByteArray(Mat mat){
-        Bitmap image = Bitmap.createBitmap(mat.cols(),
-                mat.rows(), Bitmap.Config.RGB_565);
-        Utils.matToBitmap(mat, image);
-        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-        image.compress(Bitmap.CompressFormat.JPEG, 100, byteArrayOutputStream);
-        return byteArrayOutputStream.toByteArray();
+        MatOfByte matOfByte = new MatOfByte();
+        Imgcodecs.imencode(".jpeg", mat, matOfByte);
+        return matOfByte.toArray();
     }
 
-/*    private byte[] illustrate(Mat mat, double[] correctionFactors){
+    public boolean isCorrectionFactorsSet(){
+        return correctionFactorsSet;
+    }
+
+    private Mat desaturate(Mat mat){
+        List<Mat> channels = new ArrayList<>();
+        Core.split(mat, channels);
+        //use only green channel in RGB images
+        return channels.get(1);
+    }
+
+    /*    private byte[] illustrate(Mat mat, double[] correctionFactors){
         double max = 0.0;
         double [] pixels = new double[correctionFactors.length];
         for (int i = 0; i < correctionFactors.length; i++) {
@@ -137,14 +159,9 @@ public class IlluminationCorrection {
 
     }*/
 
-    public boolean isCorrectionFactorsSet(){
-        return correctionFactorsSet;
-    }
-
-    private Mat desaturate(Mat mat){
-        List<Mat> channels = new ArrayList<>();
-        Core.split(mat, channels);
-        //use only green channel in RGB images
-        return channels.get(1);
+    private Mat performBinarization(Mat mat){
+        Mat binarizedMat = new Mat();
+        Imgproc.threshold(mat,binarizedMat,0,255,Imgproc.THRESH_OTSU);
+        return binarizedMat;
     }
 }

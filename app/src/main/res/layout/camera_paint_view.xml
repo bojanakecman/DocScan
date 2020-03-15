@@ -124,6 +124,15 @@
                 android:visibility="invisible"
                 android:textSize="@dimen/draw_view_counter_font_size"
                 />
+
+            <ProgressBar
+                android:id="@+id/progress_circular"
+                android:layout_width="@dimen/circular_spinner_radius"
+                android:layout_height="@dimen/circular_spinner_radius"
+                android:layout_gravity="center_vertical|center_horizontal"
+                android:gravity="center"
+                android:visibility="invisible"
+                />
             <RelativeLayout
                 android:layout_width="160dp"
                 android:layout_height="wrap_content"

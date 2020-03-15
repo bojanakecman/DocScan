@@ -105,6 +105,7 @@ import com.google.zxing.Result;
 import org.opencv.android.OpenCVLoader;
 import org.opencv.core.Mat;
 import org.opencv.imgcodecs.Imgcodecs;
+import org.opencv.imgproc.Imgproc;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -113,6 +114,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -130,6 +132,7 @@ import at.ac.tuwien.caa.docscan.camera.TaskTimer;
 import at.ac.tuwien.caa.docscan.camera.cv.CVResult;
 import at.ac.tuwien.caa.docscan.camera.cv.DkPolyRect;
 import at.ac.tuwien.caa.docscan.camera.cv.Patch;
+import at.ac.tuwien.caa.docscan.camera.cv.thread.crop.PageDetector;
 import at.ac.tuwien.caa.docscan.camera.cv.thread.preview.IPManager;
 import at.ac.tuwien.caa.docscan.camera.cv.thread.crop.ImageProcessor;
 import at.ac.tuwien.caa.docscan.glidemodule.GlideApp;
@@ -170,6 +173,7 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
     private static final String DEBUG_VIEW_FRAGMENT = "DebugViewFragment";
     private static final String KEY_SHOW_EXPOSURE_LOCK_WARNING = "KEY_SHOW_EXPOSURE_LOCK_WARNING";
     private static final String KEY_SHOW_CALIBRATION_DIALOG = "KEY_SHOW_CALIBRATION_WARNING";
+    private static final String KEY_SET_DPI = "KEY_SET_DPI";
     private static final int PERMISSION_READ_EXTERNAL_STORAGE = 0;
     private static final int PERMISSION_WRITE_EXTERNAL_STORAGE = 1;
     private static final int PERMISSION_ACCESS_FINE_LOCATION = 2;
@@ -236,9 +240,6 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
 
     private boolean mIsQRActive = false;
 
-    private int dpi = 0;
-
-    private boolean mCorrectIllumination = false;
     private  boolean mTakeReferenceImage = false;
 
 
@@ -393,6 +394,12 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
         boolean showGrid = sharedPref.getBoolean(getResources().getString(R.string.key_show_grid), false);
         mPaintView.drawGrid(showGrid);
 
+        boolean isActivatedIlluminationCorrection = sharedPref.getBoolean(getResources().getString(R.string.key_activate_illumination_correction), false);
+        if(isActivatedIlluminationCorrection && IlluminationCorrection.getInstance().isCorrectionFactorsSet())
+            enableIlluminationCorrection(mEnableIlluminationCorrectionItem);
+        else
+            disableIlluminationCorrection(mDisableIlluminationCorrectionItem);
+
         boolean useFastPageDetection = sharedPref.getBoolean(getResources().getString(
                 R.string.key_fast_segmentation), true);
         NativeWrapper.setUseLab(!useFastPageDetection);
@@ -455,8 +462,11 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
             getIntent().removeExtra(KEY_RETAKE_IMAGE);
         }
 
-        //TODO: promijeni lokaciju gdje racunas dpi
-        dpi = calculateDPIForPrinting();
+        int dpi = calculateDPIForPrinting();
+
+        SharedPreferences.Editor editor = sharedPref.edit();
+        editor.putInt(KEY_SET_DPI, dpi);
+        editor.commit();
 
     }
 
@@ -757,6 +767,18 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
         else
             item.setTitle(getString(R.string.show_grid_item_title));
 
+        boolean isActivatedIlluminationCorrection = sharedPref.getBoolean(getResources().getString(R.string.key_activate_illumination_correction), false);
+
+        MenuItem enableIlluminationCorrection = menu.findItem(R.id.enable_illumination_correction_item);
+        MenuItem disableIlluminationCorrection = menu.findItem(R.id.disable_illumination_correction_item);
+
+        if (isActivatedIlluminationCorrection && IlluminationCorrection.getInstance().isCorrectionFactorsSet()){
+            enableIlluminationCorrection.setVisible(false);
+            disableIlluminationCorrection.setVisible(true);
+        } else {
+            enableIlluminationCorrection.setVisible(true);
+            disableIlluminationCorrection.setVisible(false);
+        }
         return true;
 
     }
@@ -960,8 +982,31 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
 //                } catch (InterruptedException e) {
 //                    e.printStackTrace();
 //                }
-                requestPictureSave(data);
 
+                SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(mContext);
+                boolean isTakenReferenceImage =  sharedPref.getBoolean(getResources().getString(R.string.key_take_reference_image), false);
+                if(!isTakenReferenceImage){
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            ProgressBar takingPictureSpinner = findViewById(R.id.progress_circular);
+                            takingPictureSpinner.setVisibility(View.VISIBLE);
+                        }
+                    });
+                    IlluminationCorrection.getInstance().calculateCorrectionFactors(data);
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            ProgressBar takingPictureSpinner = findViewById(R.id.progress_circular);
+                            takingPictureSpinner.setVisibility(View.INVISIBLE);
+                            showReferenceImageTakenConfirmation();
+                        }
+                    });
+
+                    Log.d(CLASS_NAME, "calculated correcting factors");
+                } else {
+                    requestPictureSave(data);
+                }
                 Log.d(CLASS_NAME, "took picture");
 
             }
@@ -1299,15 +1344,15 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
     }
 
     private void requestPictureSave(byte[] data) {
-
         // Check if we have the permission to save images:
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
             mPictureData = data;
             // ask for permission:
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, PERMISSION_WRITE_EXTERNAL_STORAGE);
-        } else
+        } else {
             savePicture(data);
-
+            // Save the new setting:
+        }
 
     }
 
@@ -1320,8 +1365,8 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
 
 //        commented, because we are restructuring the document setup:
 //        Uri uri = getOutputMediaFile(getResources().getString(R.string.app_name));
-        FileSaver fileSaver = new FileSaver(data);
-        fileSaver.execute();
+            FileSaver fileSaver = new FileSaver(data);
+            fileSaver.execute();
 
     }
 
@@ -2904,6 +2949,8 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
 
         @Override
         protected String doInBackground(Void... voids) {
+            SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(mContext);
+            boolean isActivatedIlluminationCorrection = sharedPref.getBoolean(getResources().getString(R.string.key_activate_illumination_correction), false);
 
             Uri uri = getFileName(mContext.getString(R.string.app_name));
             Log.d(CLASS_NAME, "FileSaver: uri " + uri);
@@ -2912,8 +2959,6 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
                 return null;
 
             final File file = new File(uri.getPath());
-
-
 
             if (file == null)
                 return null;
@@ -2928,37 +2973,17 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
                     }
                 });
 
-
-                if(mCorrectIllumination) {
-                    if(mTakeReferenceImage) {
-                        IlluminationCorrection.getInstance().calculateCorrectionFactors(mData);
-                        runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                showReferenceImageTakenConfirmation();
-                            }
-                        });
-
-                    }else if(IlluminationCorrection.getInstance().isCorrectionFactorsSet())
+                if (isActivatedIlluminationCorrection) {
+                    if (IlluminationCorrection.getInstance().isCorrectionFactorsSet()) {
                         mData = IlluminationCorrection.getInstance().antivignetting(mData);
-
+                    }
                 }
 
-
                 FileOutputStream fos = new FileOutputStream(file);
-
-                //BOJANA 1
-/*
-                BitmapFactory.Options options = new BitmapFactory.Options();
-                options.inJustDecodeBounds = true;
-                Bitmap bmp = BitmapFactory.decodeStream(new FileInputStream(file), null, options);
-                */
-
 
                 fos.write(mData);
 
                 fos.close();
-
 
                 // Save exif information (especially the orientation):
                 saveExif(file);
@@ -2974,7 +2999,9 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
 
                 mIsPictureSafe = true;
 
+
                 return uri.getPath();
+
 
             } catch (Exception e) {
 
@@ -2996,9 +3023,7 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
 //                Log.d(CLASS_NAME, "Could not save file: " + outFile);
             }
 
-
             return null;
-
 
         }
 
@@ -3040,10 +3065,6 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
                 String exifOrientation = Integer.toString(orientation);
                 exif.setAttribute(ExifInterface.TAG_ORIENTATION, exifOrientation);
 
-//                Save dpi in x and y resolution exif tag
-                Rational r = new Rational(dpi, 1);
-                exif.setAttribute(ExifInterface.TAG_X_RESOLUTION, r.toString());
-                exif.setAttribute(ExifInterface.TAG_Y_RESOLUTION, r.toString());
 
 //                Save the docscan information:
                 exif.setAttribute(ExifInterface.TAG_SOFTWARE, getString(R.string.app_name));
@@ -3056,6 +3077,12 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
                 String copyright = sharedPref.getString(getResources().getString(R.string.key_exif_copyright), "");
                 if (!copyright.isEmpty())
                     exif.setAttribute(ExifInterface.TAG_COPYRIGHT, copyright);
+
+//                 Save dpi in x and y resolution exif tag
+                int dpi = sharedPref.getInt(KEY_SET_DPI, 0);
+                Rational r = new Rational(dpi, 1);
+                exif.setAttribute(ExifInterface.TAG_X_RESOLUTION, r.toString());
+                exif.setAttribute(ExifInterface.TAG_Y_RESOLUTION, r.toString());
 
                 // Save the GPS coordinates if available:
                 Location location = LocationHandler.getInstance(mContext).getLocation();
@@ -3083,6 +3110,7 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
 
             // Set the thumbnail on the gallery button, this must be done on the UI thread:
             if (uri != null) {
+
                 updateThumbnail(new File(uri));
 
                 //            Start the page detection on the saved image:
@@ -3093,8 +3121,9 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
                     GalleryActivity.fileRotated();
                     finish();
                 }
-            } else
+            } else {
                 Log.d(CLASS_NAME, "onPostExecute: could not save file!");
+            }
 
         }
 
@@ -3103,10 +3132,13 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
 
     public void enableIlluminationCorrection(MenuItem item) {
 
+        SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
+        boolean isActivatedIlluminationCorrection = sharedPref.getBoolean(getResources().getString(R.string.key_activate_illumination_correction), false);
+
         if (mCameraPreview != null) {
 
-            mCorrectIllumination = true;
-            showShadowRemovalDialog();
+            if(!isActivatedIlluminationCorrection)
+                showShadowRemovalDialog();
 
             if (mEnableIlluminationCorrectionItem != null)
                 mEnableIlluminationCorrectionItem.setVisible(false);
@@ -3114,6 +3146,10 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
                 mDisableIlluminationCorrectionItem.setVisible(true);
 
         }
+        //        Save the new setting:
+        SharedPreferences.Editor editor = sharedPref.edit();
+        editor.putBoolean(getResources().getString(R.string.key_activate_illumination_correction), true);
+        editor.commit();
 
     }
 
@@ -3122,14 +3158,18 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
 
         if (mCameraPreview != null) {
 
-            mCorrectIllumination = false;
-
             if (mEnableIlluminationCorrectionItem != null)
                 mEnableIlluminationCorrectionItem.setVisible(true);
             if (mDisableIlluminationCorrectionItem != null)
                 mDisableIlluminationCorrectionItem.setVisible(false);
 
         }
+        //        Save the new setting:
+        SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
+        SharedPreferences.Editor editor = sharedPref.edit();
+        editor.putBoolean(getResources().getString(R.string.key_activate_illumination_correction), false);
+        editor.commit();
+
 
     }
 
@@ -3145,10 +3185,13 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
                 new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-                        mTakeReferenceImage = true;
+                        //        Save the new setting:
+                        SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(mContext);
+                        SharedPreferences.Editor editor = sharedPref.edit();
+                        editor.putBoolean(getResources().getString(R.string.key_take_reference_image), false);
+                        editor.commit();
                     }
                 });
-
         alertDialog.show();
 
     }
@@ -3165,10 +3208,14 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
                 new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-                        mTakeReferenceImage = false;
+                        mIsPictureSafe = true;
+                        //        Save the new setting:
+                        SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(mContext);
+                        SharedPreferences.Editor editor = sharedPref.edit();
+                        editor.putBoolean(getResources().getString(R.string.key_take_reference_image), true);
+                        editor.commit();
                     }
                 });
-
         alertDialog.show();
 
     }

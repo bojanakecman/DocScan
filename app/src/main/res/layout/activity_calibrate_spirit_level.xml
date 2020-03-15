@@ -4,9 +4,9 @@
     android:id="@+id/calibation_control"
     android:layout_height="@dimen/calibrate_button_height"
     android:layout_width="@dimen/calibrate_button_width"
-    android:layout_alignParentBottom="true"
+    android:layout_alignParentTop="true"
     android:layout_marginLeft="@dimen/activity_vertical_margin"
-    android:layout_marginBottom="180dp"
+    android:layout_marginTop="100dp"
     >
 
     <androidx.appcompat.widget.AppCompatImageButton
