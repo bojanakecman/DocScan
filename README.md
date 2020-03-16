@@ -50,6 +50,9 @@ You can get the API key if you send a mail to docscan@cvl.tuwien.ac.at. Before y
 - `git update-index --assume-unchanged google-services.json`
 - `git update-index --assume-unchanged gradle.properties`
 
+## Cheatsheet
+In case you need a more detailed error message for build errors, try: ``.\gradlew clean build``
+
 ## Visual Studio Project (C++ Library)
 - Optional for testing the C++ module
 - C++ lib for page segmentation and focus measure

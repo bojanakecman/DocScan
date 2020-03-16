@@ -13,7 +13,7 @@ public class Document {
     private String mTitle;
     private ArrayList<Page> mPages;
     private boolean mIsUploaded = false;
-    private boolean mIsCropped = false;
+    private boolean mIsCurrentlyProcessed = false;
     private boolean mIsAwaitingUpload = false;
     private int mDpi;
 
@@ -45,6 +45,22 @@ public class Document {
 
     }
 
+    /**
+     * Deletes all images.
+     */
+    public void deleteImages() {
+
+        Iterator<Page> it = mPages.iterator();
+        while (it.hasNext()) {
+            Page page = it.next();
+            if (page != null && page.getFile() != null && page.getFile().exists()) {
+                page.getFile().delete();
+                it.remove();
+            }
+        }
+
+    }
+
     public void replacePage(File file, int index) {
 
         if (mPages != null && mPages.size() >= index + 1 && mPages.get(index) != null) {
@@ -67,6 +83,20 @@ public class Document {
     public TranskribusMetaData getMetaData() {
 
         return mMetaData;
+
+    }
+
+    public ArrayList<String> getFilePaths() {
+
+        if (mPages == null)
+            return null;
+
+        ArrayList<String> fileNames = new ArrayList<>(mPages.size());
+        for (Page page : mPages) {
+            fileNames.add(page.getFile().getAbsolutePath());
+        }
+
+        return fileNames;
 
     }
 
@@ -132,15 +162,15 @@ public class Document {
 
     }
 
-    public void setIsCropped(boolean isCropped) {
+    public void setIsCurrentlyProcessed(boolean isProcessed) {
 
-        mIsCropped = isCropped;
+        mIsCurrentlyProcessed = isProcessed;
 
     }
 
-    public boolean isCropped() {
+    public boolean isCurrentlyProcessed() {
 
-        return mIsCropped;
+        return mIsCurrentlyProcessed;
 
     }
 

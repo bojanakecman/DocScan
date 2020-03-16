@@ -56,7 +56,7 @@ public class ImageProcessor {
     public static final int MESSAGE_CREATED_DOCUMENT = 1;
 
     public static final String INTENT_FILE_NAME = "INTENT_FILE_NAME";
-//    public static final String INTENT_FILE_MAPPED = "INTENT_FILE_MAPPED";
+    //    public static final String INTENT_FILE_MAPPED = "INTENT_FILE_MAPPED";
     public static final String INTENT_IMAGE_PROCESS_ACTION = "INTENT_IMAGE_PROCESS_ACTION";
     public static final String INTENT_IMAGE_PROCESS_TYPE = "INTENT_IMAGE_PROCESS_TYPE";
     public static final int INTENT_IMAGE_PROCESS_FINISHED = 0;
@@ -69,10 +69,10 @@ public class ImageProcessor {
     private static final TimeUnit KEEP_ALIVE_TIME_UNIT;
 
     // Sets the initial threadpool size to 8
-    private static final int CORE_POOL_SIZE = 8;
+    private static final int CORE_POOL_SIZE = 4;
 
     // Sets the maximum threadpool size to 8
-    private static final int MAXIMUM_POOL_SIZE = 8;
+    private static final int MAXIMUM_POOL_SIZE = 4;
 
 
     private static final String CLASS_NAME = "ImageProcessor";
@@ -80,20 +80,23 @@ public class ImageProcessor {
     // A queue of Runnables for the page detection
     private final BlockingQueue<Runnable> mProcessQueue;
     // A managed pool of background threads
-    private final ThreadPoolExecutor mProcessThreadPool;
-
-//    This is a single thread executor, in order to avoid OOM's when opening too many images in
+//    private final ThreadPoolExecutor mProcessThreadPool;
+    private final Executor mProcessThreadPool;
+    //    This is a single thread executor, in order to avoid OOM's when opening too many images in
 //    parallel, instead the pdf's are created in serial:
     private final Executor mPDFExecutor;
-//    We use here a weak reference to avoid memory leaks:
+    //    We use here a weak reference to avoid memory leaks:
 //    @see https://www.androiddesignpatterns.com/2013/01/inner-class-handler-memory-leak.html
     private WeakReference<Context> mContext;
 
     // An object that manages Messages in a Thread
     private Handler mHandler;
 
-//    Singleton:
+    //    Singleton:
     private static ImageProcessor sInstance;
+
+////    Used for espresso testing:
+//    private static boolean useEpressoIdling = false;
 
     static {
 
@@ -103,14 +106,25 @@ public class ImageProcessor {
         sInstance = new ImageProcessor();
     }
 
+//    public static void setEspressoIdling(boolean use) {
+//
+//        useEpressoIdling = use;
+//
+//    }
+
+//    public CountingIdlingResource getIdling() {
+//        return EspressoIdling.INSTANCE.getCntRes();
+//    }
 
     private ImageProcessor() {
 
         mProcessQueue = new LinkedBlockingQueue<>();
         mPDFExecutor = Executors.newSingleThreadExecutor();
+        mProcessThreadPool = Executors.newSingleThreadExecutor();
 
-        mProcessThreadPool = new ThreadPoolExecutor(CORE_POOL_SIZE, MAXIMUM_POOL_SIZE,
-                KEEP_ALIVE_TIME, KEEP_ALIVE_TIME_UNIT, mProcessQueue);
+        //        mProcessThreadPool = new ThreadPoolExecutor(CORE_POOL_SIZE, MAXIMUM_POOL_SIZE,
+//                KEEP_ALIVE_TIME, KEEP_ALIVE_TIME_UNIT, mProcessQueue);
+//        mProcessThreadPool = Executors.newFixedThreadPool(2);
 
         /*
          * Instantiates a new anonymous Handler object and defines its
@@ -149,7 +163,7 @@ public class ImageProcessor {
                 PdfProcessTask pdfTask = (PdfProcessTask) task;
                 if (pdfTask.getPdfName() != null) {
                     File pdfFile = new File(Helper.getPDFStorageDir("DocScan").getAbsolutePath(),
-                        pdfTask.getPdfName() + ".pdf");
+                            pdfTask.getPdfName() + ".pdf");
                     String absolutePath = pdfFile.getAbsolutePath();
                     sendIntent(absolutePath, INTENT_PDF_PROCESS_FINISHED);
                     return true;
@@ -164,6 +178,9 @@ public class ImageProcessor {
              * @return true if the task is handled.
              */
             private boolean finishTask(ImageProcessTask task) {
+
+//                if (useEpressoIdling)
+//                    EspressoIdling.INSTANCE.decrement();
 
                 if (task == null)
                     return false;
@@ -204,9 +221,9 @@ public class ImageProcessor {
                 else
                     return false;
 
-                if (task.getFile() != null) {
+                if (task.getFile() != null)
                     sendIntent(task.getFile().getAbsolutePath(), INTENT_IMAGE_PROCESS_FINISHED);
-                }
+
 
                 return true;
 
@@ -307,6 +324,9 @@ public class ImageProcessor {
 
         ImageProcessTask imageProcessTask = null;
 
+//        if (useEpressoIdling)
+//            EspressoIdling.INSTANCE.increment();
+
         //        Inform the logger that we got a new file here:
         switch (taskType) {
             case TASK_TYPE_PAGE_DETECTION:
@@ -363,14 +383,14 @@ public class ImageProcessor {
 
     private void sendIntent(String fileName, int type) {
 
-        Log.d(CLASS_NAME, "sendIntent:");
+//        Log.d(CLASS_NAME, "sendIntent:");
 
-        Intent intent = new Intent(INTENT_IMAGE_PROCESS_ACTION);
-        intent.putExtra(INTENT_IMAGE_PROCESS_TYPE, type);
-        intent.putExtra(INTENT_FILE_NAME, fileName);
-
-        if (mContext != null)
+        if (mContext != null && mContext.get() != null) {
+            Intent intent = new Intent(INTENT_IMAGE_PROCESS_ACTION);
+            intent.putExtra(INTENT_IMAGE_PROCESS_TYPE, type);
+            intent.putExtra(INTENT_FILE_NAME, fileName);
             LocalBroadcastManager.getInstance(mContext.get()).sendBroadcast(intent);
+        }
 
     }
 

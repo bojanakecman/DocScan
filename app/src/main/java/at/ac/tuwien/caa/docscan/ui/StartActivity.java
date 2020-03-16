@@ -55,6 +55,7 @@ import at.ac.tuwien.caa.docscan.R;
 import at.ac.tuwien.caa.docscan.logic.DocumentStorage;
 import at.ac.tuwien.caa.docscan.logic.Settings;
 import at.ac.tuwien.caa.docscan.sync.SyncStorage;
+import at.ac.tuwien.caa.docscan.sync.SyncUtils;
 import at.ac.tuwien.caa.docscan.ui.document.CreateDocumentActivity;
 import at.ac.tuwien.caa.docscan.ui.intro.IntroFragment;
 import at.ac.tuwien.caa.docscan.ui.intro.ZoomOutPageTransformer;
@@ -107,6 +108,7 @@ public class StartActivity extends AppCompatActivity implements ActivityCompat.O
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
 
 //        In case the user created a document, close the intro, the CameraActivity is already started:
+        super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == CREATE_DOCUMENT && resultCode == RESULT_OK)
             finish();
 
