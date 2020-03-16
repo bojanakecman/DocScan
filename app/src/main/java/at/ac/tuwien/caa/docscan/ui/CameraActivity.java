@@ -461,11 +461,14 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
             getIntent().removeExtra(KEY_RETAKE_IMAGE);
         }
 
-        int dpi = calculateDPI();
+        int dpi = sharedPref.getInt(getResources().getString(R.string.key_set_dpi), -1);
+        if(dpi == -1)
+            dpi = calculateDPI();
+            SharedPreferences.Editor editor = sharedPref.edit();
+            editor.putInt(getResources().getString(R.string.key_set_dpi), dpi);
+            editor.commit();
 
-        SharedPreferences.Editor editor = sharedPref.edit();
-        editor.putInt(getResources().getString(R.string.key_set_dpi), dpi);
-        editor.commit();
+
 
 ////        A new document was created -> show a dialog for text direction
 //        boolean documentCreated = getIntent().getBooleanExtra(DOCUMENT_CREATED_KEY, false);
@@ -3774,7 +3777,7 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
             }
 
             //                 Save dpi in x and y resolution exif tag
-            int dpi = sharedPref.getInt(getResources().getString(R.string.key_set_dpi), 0);
+            int dpi = sharedPref.getInt(getResources().getString(R.string.key_set_dpi), -1);
             if (dpi != -1) {
                 if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
                     Rational r = new Rational(dpi, 1);
