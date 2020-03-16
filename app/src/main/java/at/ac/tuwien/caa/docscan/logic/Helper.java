@@ -56,6 +56,8 @@ public class Helper {
 
     private static final String RESERVED_CHARS = "|\\?*<\":>+[]/'";
     private static final String CLASS_NAME = "Helper";
+    //distance from tent in inches
+    private static final double DISTANCE_FROM_CAMERA = 16.535;
 
 
     /**
@@ -99,15 +101,11 @@ public class Helper {
         return mediaStorageDir;
     }
 
-    public static int getDPI(double cameraDistance, float horizontalViewAngle, int imgW) {
-
+    public static int calculateDPI(float horizontalViewAngle, int imageWidth) {
         double thetaH = Math.toRadians(horizontalViewAngle);
-
         //Size in inches
-        double printWidth = 2 * cameraDistance * Math.tan(thetaH / 2);
-
-        return (int) Math.round((double) imgW / printWidth);
-
+        double printWidth = 2 * DISTANCE_FROM_CAMERA * Math.tan(thetaH / 2);
+        return (int) Math.round((double) imageWidth / printWidth);
     }
 
     /**

@@ -245,9 +245,6 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
     private boolean mRestoreTab = false;
     private boolean mIsQRActive = false;
 
-    private int dpi = 0;
-
-
     /**
      * Static initialization of the OpenCV and docscan-native modules.
      */
@@ -464,8 +461,11 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
             getIntent().removeExtra(KEY_RETAKE_IMAGE);
         }
 
-        //TODO: promijeni lokaciju gdje racunas dpi
-        dpi = calculateDPIForPrinting();
+        int dpi = calculateDPI();
+
+        SharedPreferences.Editor editor = sharedPref.edit();
+        editor.putInt(getResources().getString(R.string.key_set_dpi), dpi);
+        editor.commit();
 
 ////        A new document was created -> show a dialog for text direction
 //        boolean documentCreated = getIntent().getBooleanExtra(DOCUMENT_CREATED_KEY, false);
@@ -3403,26 +3403,18 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
     }
 
 
-    public int calculateDPIForPrinting() {
+    public int calculateDPI() {
         //should not happen
-        if (mCameraPreview.getCamera() == null)
+        if (mCameraPreview == null || mCameraPreview.getCamera() == null ||
+                mCameraPreview.getCamera().getParameters() == null)
             return -1;
 
         Camera.Parameters p = mCameraPreview.getCamera().getParameters();
-        double thetaH = Math.toRadians(p.getHorizontalViewAngle());
-        double thetaV = Math.toRadians(p.getVerticalViewAngle());
-
-        //Print size in inches
-        double printWidth = 2 * DISTANCE_FROM_TENT * Math.tan(thetaH / 2);
-        double printHeight = 2 * DISTANCE_FROM_TENT * Math.tan(thetaV / 2);
-
+        //Horizontal view angle in degrees
+        float horizontalViewAnge = p.getHorizontalViewAngle();
         //File image resolution in pixels
-        double imageWidth = p.getPictureSize().width;
-
-        double imageHeight = p.getPictureSize().height;
-
-
-        return (int) (imageWidth / printWidth);
+        int imageWidth = p.getPictureSize().width;
+        return Helper.calculateDPI(horizontalViewAnge, imageWidth);
 
     }
 
@@ -3781,7 +3773,8 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
                 exif.setAttribute(ExifInterface.TAG_GPS_LONGITUDE_REF, GPS.longitudeRef(longitude));
             }
 
-            int dpi = getDPI();
+            //                 Save dpi in x and y resolution exif tag
+            int dpi = sharedPref.getInt(getResources().getString(R.string.key_set_dpi), 0);
             if (dpi != -1) {
                 if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
                     Rational r = new Rational(dpi, 1);
@@ -3789,41 +3782,8 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
                     exif.setAttribute(ExifInterface.TAG_Y_RESOLUTION, r.toString());
                 }
             }
-
             exif.saveAttributes();
 
-        }
-
-
-        private int getDPI() {
-
-//            First see if we have already a dpi value saved:
-            SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(mContext);
-            int dpi = sharedPref.getInt(getResources().getString(
-                    R.string.key_dpi), -1);
-            if (dpi == -1) {
-//                Otherwise calculate it:
-                dpi = getDPIFromCamera();
-//                Save the dpi to shared preferences:
-                if (dpi != -1) {
-                    SharedPreferences.Editor editor = sharedPref.edit();
-                    editor.putInt(getResources().getString(R.string.key_dpi), dpi);
-                    editor.commit();
-                }
-            }
-            return dpi;
-        }
-
-        private int getDPIFromCamera() {
-            //distance from tent in inches
-            double cameraDistance = 16.535;
-            if (mCameraPreview == null || mCameraPreview.getCamera() == null ||
-                    mCameraPreview.getCamera().getParameters() == null)
-                return -1;
-
-            float angle = mCameraPreview.getCamera().getParameters().getHorizontalViewAngle();
-            int imgW = mCameraPreview.getCamera().getParameters().getPictureSize().width;
-            return Helper.getDPI(cameraDistance, angle, imgW);
         }
 
         private int getExifOrientation() {
