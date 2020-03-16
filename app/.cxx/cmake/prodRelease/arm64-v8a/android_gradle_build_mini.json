@@ -1,0 +1,21 @@
+{
+  "buildFiles": [
+    "C:\\Users\\Bojana\\Desktop\\DocScan\\app\\CMakeLists.txt"
+  ],
+  "cleanCommands": [
+    "C:\\Users\\Bojana\\AppData\\Local\\Android\\Sdk\\cmake\\3.6.4111459\\bin\\cmake.exe --build C:\\Users\\Bojana\\Desktop\\DocScan\\app\\.cxx\\cmake\\prodRelease\\arm64-v8a --target clean"
+  ],
+  "libraries": {
+    "docscan-native-Release-arm64-v8a": {
+      "artifactName": "docscan-native",
+      "buildCommand": "C:\\Users\\Bojana\\AppData\\Local\\Android\\Sdk\\cmake\\3.6.4111459\\bin\\cmake.exe --build C:\\Users\\Bojana\\Desktop\\DocScan\\app\\.cxx\\cmake\\prodRelease\\arm64-v8a --target docscan-native",
+      "abi": "arm64-v8a",
+      "output": "C:\\Users\\Bojana\\Desktop\\DocScan\\app\\build\\intermediates\\cmake\\prodRelease\\obj\\arm64-v8a\\libdocscan-native.so"
+    },
+    "lib_opencv-Release-arm64-v8a": {
+      "artifactName": "lib_opencv",
+      "abi": "arm64-v8a",
+      "output": "C:\\Users\\Bojana\\Desktop\\DocScan\\app\\src\\main\\jniLibs\\arm64-v8a\\libopencv_java3.so"
+    }
+  }
+}

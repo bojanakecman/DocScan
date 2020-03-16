@@ -1,0 +1,17 @@
+# ninja log v5
+97	5537	0	CMakeFiles/docscan-native.dir/src/main/cpp/Utils.cpp.o	de52d82e699af3c0
+77	8106	0	CMakeFiles/docscan-native.dir/src/main/cpp/DkMath.cpp.o	9a9e3e7222ac2345
+64	9945	0	CMakeFiles/docscan-native.dir/src/main/cpp/PageSegmentationUtils.cpp.o	695f6bb04eeacf11
+85	10171	0	CMakeFiles/docscan-native.dir/src/main/cpp/PageSegmentation.cpp.o	c27cd03e372628e9
+5540	10818	0	CMakeFiles/docscan-native.dir/src/main/cpp/Illumination.cpp.o	9bb3ec4a035a4c2a
+1	12672	0	CMakeFiles/docscan-native.dir/src/main/cpp/DocScanInterface.cpp.o	310ade9003e1181b
+16	12991	0	CMakeFiles/docscan-native.dir/src/main/cpp/FocusMeasure.cpp.o	30290c3746c2cf18
+12991	14768	0	../../../../build/intermediates/cmake/devDebug/obj/arm64-v8a/libdocscan-native.so	3ab7e88ed09fe0df
+135	4764	0	CMakeFiles/docscan-native.dir/src/main/cpp/Utils.cpp.o	de52d82e699af3c0
+156	6586	0	CMakeFiles/docscan-native.dir/src/main/cpp/DkMath.cpp.o	9a9e3e7222ac2345
+144	8364	0	CMakeFiles/docscan-native.dir/src/main/cpp/PageSegmentationUtils.cpp.o	695f6bb04eeacf11
+164	9050	0	CMakeFiles/docscan-native.dir/src/main/cpp/PageSegmentation.cpp.o	c27cd03e372628e9
+4767	11151	0	CMakeFiles/docscan-native.dir/src/main/cpp/Illumination.cpp.o	9bb3ec4a035a4c2a
+22	11957	0	CMakeFiles/docscan-native.dir/src/main/cpp/DocScanInterface.cpp.o	310ade9003e1181b
+151	12061	0	CMakeFiles/docscan-native.dir/src/main/cpp/FocusMeasure.cpp.o	30290c3746c2cf18
+12061	13482	0	../../../../build/intermediates/cmake/devDebug/obj/arm64-v8a/libdocscan-native.so	3ab7e88ed09fe0df
