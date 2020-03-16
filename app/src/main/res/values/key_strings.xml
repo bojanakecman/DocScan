@@ -11,7 +11,9 @@
     <string name="key_aggressive_autofocus">KEY_AGGRESSIVE_AUTO_FOCUS</string>
     <string name="key_show_grid">KEY_SHOW_GRID</string>
     <string name="key_text_orientation">KEY_TEXT_ORIENTATION</string>
-    <string name="key_show_spirit_level">KEY_SHOW_SPIRIT_LEVEL</string>
+    <string name="key_enable_spirit_level">KEY_ENABLE_SPIRIT_LEVEL</string>
+    <string name="key_enable_illumination_correction">KEY_ENABLE_ILLUMINATION_CORRECTION</string>
+    <string name="key_take_reference_image">KEY_TAKE_REFERENCE_IMAGE</string>
     <string name="key_flash_series_mode">KEY_FLASH_SERIES_MODE</string>
     <string name="key_debug_settings">KEY_DEBUG_SETTINGS</string>
     <string name="key_exif_settings">KEY_EXIF_SETTINGS</string>

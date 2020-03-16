@@ -1015,7 +1015,7 @@ public class PaintView extends SurfaceView implements SurfaceHolder.Callback {
 
             float startXBoundary = getWidth() / 10;
             float endXBoundary = getWidth() - getWidth() / 10;
-            float startYBoundary = getHeight() - getHeight() / 20;
+            float startYBoundary = getHeight() - getHeight() / 10;
             float endYBoundary = getHeight() / 5;
 
             float horizontalLineLength = endXBoundary - startXBoundary - 80;

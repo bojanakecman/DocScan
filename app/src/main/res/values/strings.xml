@@ -483,6 +483,10 @@
     <string name="action_setting_flash_series">Flash after automated imaging</string>
     <string name="action_setting_no_flash_series">No flash after automated imaging</string>
     <string name="action_setting_qr_mode">Create Document from QR code</string>
+    <string name="action_setting_enable_spirit_level">Enable spirit level</string>
+    <string name="action_setting_disable_spirit_level">Disable spirit level</string>
+    <string name="action_setting_enable_illumination_correction">Remove shadow</string>
+    <string name="action_setting_disable_illumination_correction">Disable shadow removal</string>
 
     <string name="viewer_crop_confirm_title">Crop</string>
     <string name="viewer_crop_confirm_text">Are you sure you want to crop all images in the document?
@@ -501,6 +505,17 @@
     <string name="viewer_not_logged_in_title">Not logged in</string>
     <string name="viewer_not_logged_in_text">You are currently not logged in. Do you want to login to a cloud service?</string>
     <string name="viewer_pdf_created_snackbar_text">Created pdf</string>
+
+    <string name="enable_illumination_correction_item">Remove shadow</string>
+    <string name="disable_illumination_correction_item">Disable shadow removal</string>
+    <string name="remove_shadow">Remove Shadow from Scans</string>
+    <string name="remove_shadow_instruction">DocScan corrects uneven illumination based on the reference image. Please place your phone on the top of the tent, parallel above the white paper. Capture a reference image and precede to scanning the document.</string>
+    <string name="note">NOTE:</string>
+    <string name="remove_shadow_note">This feature can only return precise results if used in combination with the scan tent. It requires fixed position of the camera during scanning.</string>
+    <string name="dialog_take_picture_button">Take Picture</string>
+    <string name="reference_image_captured">Reference Image Captured</string>
+    <string name="reference_image_captured_confirmation">Reference image is captured and stored. You can now precede to scanning the document. Note that if the camera position is changed, previous step has to be repeated.</string>
+    <string name="dialog_precede_button">Precede</string>
 
 
     <!-- PdfSelectorActivity -->

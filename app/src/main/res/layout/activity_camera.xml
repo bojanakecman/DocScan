@@ -27,9 +27,9 @@
         <RelativeLayout
             android:layout_width="wrap_content"
             android:layout_height="@dimen/camera_text_overlay_height"
-            android:layout_marginLeft="5dp"
-            android:layout_above="@+id/camera_controls_layout"
-            android:layout_marginBottom="100dp"
+            android:layout_marginLeft="10dp"
+            android:layout_above="@+id/calibrate_button_layout"
+            android:layout_marginBottom="50dp"
             >
             <androidx.appcompat.widget.AppCompatImageButton
                 android:id="@+id/camera_info_button"
@@ -53,8 +53,23 @@
                 android:textSize="16sp"
                 />
         </RelativeLayout>
-
-        <include layout="@layout/activity_calibrate_spirit_level" />
+        <RelativeLayout
+            android:id="@+id/calibrate_button_layout"
+            android:layout_width="wrap_content"
+            android:layout_height="@dimen/camera_text_overlay_height"
+            android:layout_marginLeft="10dp"
+            android:layout_above="@+id/camera_controls_layout"
+            android:layout_marginBottom="20dp"
+            >
+            <androidx.appcompat.widget.AppCompatImageButton
+                android:id="@+id/calibrate_button"
+                android:layout_width="@dimen/camera_text_overlay_height"
+                android:layout_height="@dimen/camera_text_overlay_height"
+                app:srcCompat="@drawable/ic_calibrate"
+                android:visibility="invisible"
+                android:background="@drawable/camera_text_overlay_bg"
+                />
+        </RelativeLayout>
 
         <include layout="@layout/camera_controls_layout"
             />

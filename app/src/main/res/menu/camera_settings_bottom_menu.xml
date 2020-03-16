@@ -40,6 +40,29 @@
         android:icon="@drawable/ic_qr_code_gray"
         />
 
+    <item
+        android:id="@+id/action_enable_spirit_level_item"
+        android:title="@string/action_setting_enable_spirit_level"
+        android:icon="@drawable/ic_ruler_on_24dp"
+        />
+
+    <item
+        android:id="@+id/action_disable_spirit_level_item"
+        android:title="@string/action_setting_disable_spirit_level"
+        android:icon="@drawable/ic_ruler_off_24dp"
+        />
+    <item
+        android:id="@+id/action_enable_illumination_correction_item"
+        android:title="@string/action_setting_enable_illumination_correction"
+        android:icon="@drawable/ic_illumination_on_24dp"
+        />
+
+    <item
+        android:id="@+id/action_disable_illumination_correction_item"
+        android:title="@string/action_setting_disable_illumination_correction"
+        android:icon="@drawable/ic_illumination_off_24dp"
+        />
+
     <!--<item-->
         <!--android:id="@+id/action_unlock_wb_item"-->
         <!--android:title="@string/action_setting_unlock_wb"-->

@@ -136,6 +136,7 @@ import at.ac.tuwien.caa.docscan.glidemodule.GlideApp;
 import at.ac.tuwien.caa.docscan.logic.Document;
 import at.ac.tuwien.caa.docscan.logic.DocumentMigrator;
 import at.ac.tuwien.caa.docscan.logic.DocumentStorage;
+import at.ac.tuwien.caa.docscan.logic.IlluminationCorrection;
 import at.ac.tuwien.caa.docscan.ui.document.CreateDocumentActivity;
 import at.ac.tuwien.caa.docscan.ui.docviewer.DocumentViewerActivity;
 import at.ac.tuwien.caa.docscan.ui.gallery.GalleryActivity;
@@ -388,6 +389,16 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
         boolean showGrid = sharedPref.getBoolean(getResources().getString(R.string.key_show_grid), false);
         mPaintView.drawGrid(showGrid);
 
+        boolean isEnableSpiritLevel =  sharedPref.getBoolean(getResources().getString(R.string.key_enable_spirit_level), false);
+        if(isEnableSpiritLevel)
+            enableSpiritLevel();
+
+        boolean isActivatedIlluminationCorrection = sharedPref.getBoolean(getResources().getString(R.string.key_enable_illumination_correction), false);
+        if(isActivatedIlluminationCorrection && IlluminationCorrection.getInstance().isCorrectionFactorsSet())
+            enableIlluminationCorrection();
+        else
+            disableIlluminationCorrection();
+
         boolean useFastPageDetection = sharedPref.getBoolean(getResources().getString(
                 R.string.key_fast_segmentation), true);
         NativeWrapper.setUseLab(!useFastPageDetection);
@@ -452,11 +463,6 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
 //            is not cleared, the user would be still in retake mode.
             getIntent().removeExtra(KEY_RETAKE_IMAGE);
         }
-
-        boolean showSpiritLevel = sharedPref.getBoolean(getResources().getString(R.string.key_show_spirit_level), false);
-
-        if(showSpiritLevel)
-            enableSpiritLevel(mEnableSpiritLevelItem);
 
         //TODO: promijeni lokaciju gdje racunas dpi
         dpi = calculateDPIForPrinting();
@@ -788,6 +794,18 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
                     case R.id.action_document_qr_item:
                         startQRMode();
                         break;
+                    case R.id.action_enable_spirit_level_item:
+                        enableSpiritLevel();
+                        break;
+                    case R.id.action_disable_spirit_level_item:
+                        disableSpiritLevel();
+                        break;
+                    case R.id.action_enable_illumination_correction_item:
+                        enableIlluminationCorrection();
+                        break;
+                    case R.id.action_disable_illumination_correction_item:
+                        disableIlluminationCorrection();
+                        break;
                 }
             }
         };
@@ -879,6 +897,31 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
                 R.id.action_document_qr_item,
                 getString(R.string.action_setting_qr_mode),
                 R.drawable.ic_qr_code_gray));
+
+        boolean isEnabledSpiritLevel = sharedPref.getBoolean(getResources().getString(R.string.key_enable_spirit_level), false);
+
+        if(isEnabledSpiritLevel)
+            actions.add(new ActionSheet.SheetAction(
+                    R.id.action_disable_spirit_level_item,
+                    getString(R.string.action_setting_disable_spirit_level),
+                    R.drawable.ic_ruler_off_24dp));
+        else
+            actions.add(new ActionSheet.SheetAction(
+                    R.id.action_enable_spirit_level_item,
+                    getString(R.string.action_setting_enable_spirit_level),
+                    R.drawable.ic_ruler_on_24dp));
+
+        boolean isEnabledIlluminationCorrection = sharedPref.getBoolean(getResources().getString(R.string.key_enable_illumination_correction), false);
+        if(isEnabledIlluminationCorrection)
+            actions.add(new ActionSheet.SheetAction(
+                    R.id.action_disable_illumination_correction_item,
+                    getString(R.string.action_setting_disable_illumination_correction),
+                    R.drawable.ic_illumination_off_24dp));
+        else
+            actions.add(new ActionSheet.SheetAction(
+                    R.id.action_enable_illumination_correction_item,
+                    getString(R.string.action_setting_enable_illumination_correction),
+                    R.drawable.ic_illumination_on_24dp));
 
         return actions;
     }
@@ -1299,7 +1342,30 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
 //                } catch (InterruptedException e) {
 //                    e.printStackTrace();
 //                }
-                requestPictureSave(data);
+                SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(mContext);
+                boolean isTakenReferenceImage =  sharedPref.getBoolean(getResources().getString(R.string.key_take_reference_image), false);
+                if(!isTakenReferenceImage){
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            ProgressBar takingPictureSpinner = findViewById(R.id.progress_circular);
+                            takingPictureSpinner.setVisibility(View.VISIBLE);
+                        }
+                    });
+                    IlluminationCorrection.getInstance().calculateCorrectionFactors(data);
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            ProgressBar takingPictureSpinner = findViewById(R.id.progress_circular);
+                            takingPictureSpinner.setVisibility(View.INVISIBLE);
+                            showReferenceImageTakenConfirmation();
+                        }
+                    });
+
+                    Log.d(CLASS_NAME, "calculated correcting factors");
+                } else {
+                    requestPictureSave(data);
+                }
 
                 Log.d(CLASS_NAME, "took picture");
 
@@ -3486,12 +3552,12 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
         }
     }
 
-    public void enableSpiritLevel(MenuItem item) {
+    public void enableSpiritLevel() {
         SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
-        boolean isOnResume = sharedPref.getBoolean(getResources().getString(R.string.key_show_spirit_level), false);
+        boolean isEnabledSpiritLevel = sharedPref.getBoolean(getResources().getString(R.string.key_enable_spirit_level), false);
 
         if (mCameraPreview != null) {
-            if(!isOnResume)
+            if(!isEnabledSpiritLevel)
                 showCalibrationDialog();
             mCalibrateButton.setEnabled(true);
             mCalibrateButton.setVisibility(View.VISIBLE);
@@ -3499,19 +3565,14 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
             if (mPaintView != null)
                 mPaintView.drawRulers(true);
 
-            if (mEnableSpiritLevelItem != null)
-                mEnableSpiritLevelItem.setVisible(false);
-            if (mDisableSpiritLevelItem != null)
-                mDisableSpiritLevelItem.setVisible(true);
-
             SharedPreferences.Editor editor = sharedPref.edit();
-            editor.putBoolean(getResources().getString(R.string.key_show_spirit_level), true);
+            editor.putBoolean(getResources().getString(R.string.key_enable_spirit_level), true);
             editor.commit();
         }
 
     }
 
-    public void disableSpiritLevel(MenuItem item) {
+    public void disableSpiritLevel() {
         if (mCameraPreview != null) {
             mCalibrateButton.setEnabled(false);
             mCalibrateButton.setVisibility(View.INVISIBLE);
@@ -3519,16 +3580,11 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
             if (mPaintView != null)
                 mPaintView.drawRulers(false);
 
-            if (mEnableSpiritLevelItem != null)
-                mEnableSpiritLevelItem.setVisible(true);
-            if (mDisableSpiritLevelItem != null)
-                mDisableSpiritLevelItem.setVisible(false);
-
             SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
 
 //        Save the new setting:
             SharedPreferences.Editor editor = sharedPref.edit();
-            editor.putBoolean(getResources().getString(R.string.key_show_spirit_level), false);
+            editor.putBoolean(getResources().getString(R.string.key_enable_spirit_level), false);
             editor.commit();
 
         }
@@ -3584,6 +3640,9 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
         @Override
         protected String doInBackground(Void... voids) {
 
+            SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(mContext);
+            boolean isActivatedIlluminationCorrection = sharedPref.getBoolean(getResources().getString(R.string.key_enable_illumination_correction), false);
+
             Uri uri = getFileName(mContext.getString(R.string.app_name));
             Log.d(CLASS_NAME, "FileSaver: uri " + uri);
 
@@ -3591,7 +3650,6 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
                 return null;
 
             final File file = new File(uri.getPath());
-
 
 
             if (file == null)
@@ -3606,6 +3664,12 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
                         mProgressBar.setVisibility(View.VISIBLE);
                     }
                 });
+
+                if (isActivatedIlluminationCorrection) {
+                    if (IlluminationCorrection.getInstance().isCorrectionFactorsSet()) {
+                        mData = IlluminationCorrection.getInstance().antivignetting(mData);
+                    }
+                }
 
                 FileOutputStream fos = new FileOutputStream(file);
 
@@ -3865,6 +3929,79 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
 
         }
 
+
+    }
+    public void enableIlluminationCorrection() {
+
+        SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
+        boolean isActivatedIlluminationCorrection = sharedPref.getBoolean(getResources().getString(R.string.key_enable_illumination_correction), false);
+
+        if (mCameraPreview != null) {
+            if(!isActivatedIlluminationCorrection)
+                showShadowRemovalDialog();
+        }
+        //        Save the new setting:
+        SharedPreferences.Editor editor = sharedPref.edit();
+        editor.putBoolean(getResources().getString(R.string.key_enable_illumination_correction), true);
+        editor.commit();
+
+    }
+
+
+    public void disableIlluminationCorrection() {
+        //        Save the new setting:
+        SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
+        SharedPreferences.Editor editor = sharedPref.edit();
+        editor.putBoolean(getResources().getString(R.string.key_enable_illumination_correction), false);
+        editor.commit();
+
+
+    }
+
+    private void showShadowRemovalDialog() {
+
+        final AlertDialog.Builder alertDialog = new AlertDialog.Builder(this);
+        LayoutInflater adbInflater = LayoutInflater.from(this);
+        View eulaLayout = adbInflater.inflate(R.layout.illumination_correction_instructions_dialog, null);
+
+        alertDialog.setView(eulaLayout);
+
+        alertDialog.setPositiveButton(getString(R.string.dialog_take_picture_button),
+                new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        //        Save the new setting:
+                        SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(mContext);
+                        SharedPreferences.Editor editor = sharedPref.edit();
+                        editor.putBoolean(getResources().getString(R.string.key_take_reference_image), false);
+                        editor.commit();
+                    }
+                });
+        alertDialog.show();
+
+    }
+
+    private void showReferenceImageTakenConfirmation() {
+
+        final AlertDialog.Builder alertDialog = new AlertDialog.Builder(this);
+        LayoutInflater adbInflater = LayoutInflater.from(this);
+        View eulaLayout = adbInflater.inflate(R.layout.reference_image_taken_confirmation_dialog, null);
+
+        alertDialog.setView(eulaLayout);
+
+        alertDialog.setPositiveButton(getString(R.string.dialog_precede_button),
+                new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        mIsPictureSafe = true;
+                        //        Save the new setting:
+                        SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(mContext);
+                        SharedPreferences.Editor editor = sharedPref.edit();
+                        editor.putBoolean(getResources().getString(R.string.key_take_reference_image), true);
+                        editor.commit();
+                    }
+                });
+        alertDialog.show();
 
     }
 
