@@ -109,6 +109,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -130,6 +131,7 @@ import at.ac.tuwien.caa.docscan.camera.TaskTimer;
 import at.ac.tuwien.caa.docscan.camera.cv.CVResult;
 import at.ac.tuwien.caa.docscan.camera.cv.DkPolyRect;
 import at.ac.tuwien.caa.docscan.camera.cv.Patch;
+import at.ac.tuwien.caa.docscan.camera.cv.thread.crop.PageDetector;
 import at.ac.tuwien.caa.docscan.camera.cv.thread.preview.IPManager;
 import at.ac.tuwien.caa.docscan.camera.cv.thread.crop.ImageProcessor;
 import at.ac.tuwien.caa.docscan.glidemodule.GlideApp;
@@ -1347,7 +1349,9 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
 //                }
                 SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(mContext);
                 boolean isTakenReferenceImage =  sharedPref.getBoolean(getResources().getString(R.string.key_take_reference_image), false);
-                if(!isTakenReferenceImage){
+                boolean isActivatedIlluminationCorrection = sharedPref.getBoolean(getResources().getString(R.string.key_enable_illumination_correction), false);
+
+                if(!isTakenReferenceImage && isActivatedIlluminationCorrection){
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
@@ -3940,7 +3944,16 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
                         editor.commit();
                     }
                 });
-        alertDialog.show();
+
+        alertDialog.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                disableIlluminationCorrection();
+            }
+        });
+        AlertDialog alert = alertDialog.create();
+        alert.setCanceledOnTouchOutside(false);
+        alert.show();
 
     }
 
@@ -3964,7 +3977,9 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
                         editor.commit();
                     }
                 });
-        alertDialog.show();
+        AlertDialog alert = alertDialog.create();
+        alert.setCanceledOnTouchOutside(false);
+        alert.show();
 
     }
 
@@ -4010,7 +4025,6 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
                 inSampleSize *= 2;
             }
         }
-
         return inSampleSize;
     }
 

@@ -7,19 +7,16 @@ import org.opencv.core.MatOfByte;
 import org.opencv.core.Size;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
+import org.opencv.photo.Photo;
 import java.util.ArrayList;
 import java.util.List;
-
-import at.ac.tuwien.caa.docscan.camera.cv.DkPolyRect;
-import at.ac.tuwien.caa.docscan.camera.cv.NativeWrapper;
-
 
 public class IlluminationCorrection {
 
     private static IlluminationCorrection sInstance;
     private double[] correctionFactors;
     private boolean correctionFactorsSet = false;
-    private static final double THRESHOLD = 50.0;
+    private static final double THRESHOLD = 30.0;
 
     public static boolean isInstanceNull() {
         return sInstance == null;
@@ -48,7 +45,7 @@ public class IlluminationCorrection {
         double[] pixelRed = imageToDouble(red);
         double[] pixelBlue = imageToDouble(blue);
         for (int i = 0; i < pixelsGreen.length; i++) {
-            if(pixelsGreen[i]>THRESHOLD || pixelRed[i]>THRESHOLD || pixelBlue[i]>THRESHOLD) {
+            if(pixelsGreen[i]>THRESHOLD) {
                 pixelRed[i] *= correctionFactors[i];
                 pixelsGreen[i] *= correctionFactors[i];
                 pixelBlue[i] *= correctionFactors[i];
@@ -74,6 +71,9 @@ public class IlluminationCorrection {
         Mat outval = new Mat();
         Core.merge(result, outval);
 
+        //for now commented - increases quality of corrected image; but inefficient in Java
+        //Mat destination = new Mat(outval.rows(),outval.cols(),outval.type());
+        //Photo.fastNlMeansDenoising(outval, destination, 50,7,2);
         return convertMatToBitmapToByteArray(outval);
     }
 
@@ -106,8 +106,13 @@ public class IlluminationCorrection {
     private Mat scaleImage(Mat mat, double scalingFactor){
         Mat scaledMat = new Mat();
         //Scaling the Image
-        Imgproc.resize(mat, scaledMat, new Size(mat.cols()/scalingFactor, mat.rows()/scalingFactor), 0, 0,
-                Imgproc.INTER_AREA);
+        if(scalingFactor > 1) {
+            Imgproc.resize(mat, scaledMat, new Size(mat.cols() / scalingFactor, mat.rows() / scalingFactor), 0, 0,
+                    Imgproc.INTER_AREA);
+        } else {
+            Imgproc.resize(mat, scaledMat, new Size(mat.cols() / scalingFactor, mat.rows() / scalingFactor), 0, 0,
+                    Imgproc.INTER_LINEAR);
+        }
         return scaledMat;
     }
 

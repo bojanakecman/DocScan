@@ -57,7 +57,7 @@ public class Helper {
     private static final String RESERVED_CHARS = "|\\?*<\":>+[]/'";
     private static final String CLASS_NAME = "Helper";
     //distance from tent in inches
-    private static final double DISTANCE_FROM_CAMERA = 16.535;
+    private static final double DISTANCE_FROM_CAMERA = 16.53543;
 
 
     /**
