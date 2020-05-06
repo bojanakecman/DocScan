@@ -4,7 +4,6 @@ import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfByte;
-import org.opencv.core.Size;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
 import java.util.ArrayList;
@@ -16,7 +15,7 @@ public class IlluminationCorrection {
     private static IlluminationCorrection sInstance;
     private Mat correctionFactors;
     private boolean correctionFactorsSet = false;
-    private static int KERNEL_SIZE = 31;
+    private static final int KERNEL_SIZE = 31;
 
     public static boolean isInstanceNull() {
         return sInstance == null;
