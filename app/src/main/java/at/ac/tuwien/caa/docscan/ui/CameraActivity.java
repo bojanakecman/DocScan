@@ -3667,12 +3667,16 @@ public class CameraActivity extends BaseNavigationActivity implements TaskTimer.
                 if (isActivatedIlluminationCorrection) {
                     if (IlluminationCorrection.getInstance().isCorrectionFactorsSet()) {
                         mData = IlluminationCorrection.getInstance().antivignetting(mData);
+                        //21:09:24.791
+                        System.out.println("izasla final " +  new Timestamp(System.currentTimeMillis()));
                     }
                 }
-
+                System.out.println("izasla final prije " +  new Timestamp(System.currentTimeMillis()));
                 FileOutputStream fos = new FileOutputStream(file);
 
                 fos.write(mData);
+
+                System.out.println("izasla final poslije " +  new Timestamp(System.currentTimeMillis()));
 
                 fos.close();
 

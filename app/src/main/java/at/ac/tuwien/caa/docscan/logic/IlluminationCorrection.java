@@ -7,16 +7,16 @@ import org.opencv.core.MatOfByte;
 import org.opencv.core.Size;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
-import org.opencv.photo.Photo;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class IlluminationCorrection {
 
     private static IlluminationCorrection sInstance;
-    private double[] correctionFactors;
+    private Mat correctionFactors;
     private boolean correctionFactorsSet = false;
-    private static final double THRESHOLD = 30.0;
+    private static int KERNEL_SIZE = 31;
 
     public static boolean isInstanceNull() {
         return sInstance == null;
@@ -29,105 +29,48 @@ public class IlluminationCorrection {
     }
 
     public byte[] antivignetting(byte[] inputByteStream){
-        Mat mat = Imgcodecs.imdecode(new MatOfByte(inputByteStream), Imgcodecs.CV_LOAD_IMAGE_UNCHANGED);
-        Mat scaledMat = scaleImage(mat,3);
-        List<Mat> channels = new ArrayList<>();
-        Core.split(scaledMat, channels);
+        Mat jpegData = new Mat(1, inputByteStream.length, CvType.CV_8UC1);
+        jpegData.put(0, 0, inputByteStream);
+        Mat mat = Imgcodecs.imdecode(jpegData, Imgcodecs.IMREAD_COLOR);
+        mat.convertTo(mat, CvType.CV_32FC3);
 
-        //only green channel
-        if(scaledMat.channels() == 3)
-            scaledMat = desaturate(scaledMat);
+        List<Mat> list = Arrays.asList( this.correctionFactors, this.correctionFactors, this.correctionFactors);
+        List<Mat> correctionFactorList = new ArrayList<>(list);
 
-        Mat red = channels.get(0);
-        Mat blue = channels.get(2);
+        Mat correctionFactorsRGB = new Mat();
+        Core.merge(correctionFactorList, correctionFactorsRGB);
 
-        double[] pixelsGreen= imageToDouble(scaledMat);
-        double[] pixelRed = imageToDouble(red);
-        double[] pixelBlue = imageToDouble(blue);
-        for (int i = 0; i < pixelsGreen.length; i++) {
-            if(pixelsGreen[i]>THRESHOLD) {
-                pixelRed[i] *= correctionFactors[i];
-                pixelsGreen[i] *= correctionFactors[i];
-                pixelBlue[i] *= correctionFactors[i];
-            }
-        }
-        scaledMat.put(0,0,pixelsGreen);
-        scaledMat = scaleImage(scaledMat, (double)1/3);
-        scaledMat.convertTo(scaledMat, CvType.CV_8UC1);
+        Core.multiply(correctionFactorsRGB, mat, mat);
 
+        mat.convertTo(mat, CvType.CV_8UC3);
 
-        red.put(0,0, pixelRed);
-        red = scaleImage(red, (double)1/3);
-        red.convertTo(red, CvType.CV_8UC1);
-
-        blue.put(0,0, pixelBlue);
-        blue = scaleImage(blue, (double)1/3);
-        blue.convertTo(blue, CvType.CV_8UC1);
-
-        List<Mat> result = new ArrayList<>();
-        result.add(red);
-        result.add(scaledMat);
-        result.add(blue);
-        Mat outval = new Mat();
-        Core.merge(result, outval);
-
-        //for now commented - increases quality of corrected image; but inefficient in Java
-        //Mat destination = new Mat(outval.rows(),outval.cols(),outval.type());
-        //Photo.fastNlMeansDenoising(outval, destination, 50,7,2);
-        return convertMatToBitmapToByteArray(outval);
+        return convertMatToBitmapToByteArray(mat);
     }
 
     public void calculateCorrectionFactors(byte[] inputByteStream){
-        correctionFactorsSet = true;
         Mat mat = Imgcodecs.imdecode(new MatOfByte(inputByteStream), Imgcodecs.CV_LOAD_IMAGE_UNCHANGED);
-        Mat scaledMat = scaleImage(mat,3);
+
         //only green channel
-        if(scaledMat.channels() == 3)
-            scaledMat = desaturate(scaledMat);
+        if(mat.channels() == 3)
+            mat = desaturate(mat);
 
-        double[] pixels= imageToDouble(scaledMat);
-        double maxValue = findMaximumIlluminationIntensityValue(pixels);
-        correctionFactors = new double[pixels.length];
-        for (int i = 0; i < pixels.length; i++) {
-            correctionFactors[i] = maxValue/pixels[i];
-        }
-    }
+        Imgproc.medianBlur(mat, mat, KERNEL_SIZE);
 
-    private double findMaximumIlluminationIntensityValue(double[] pixels){
-        double maxValue = 0;
-        for (int i = 0; i < pixels.length; i++) {
-            if(pixels[i]> maxValue) {
-                maxValue = pixels[i];
-            }
-        }
-        return maxValue;
-    }
+        Core.MinMaxLocResult result = Core.minMaxLoc(mat);
+        double maxValue = result.maxVal;
 
-    private Mat scaleImage(Mat mat, double scalingFactor){
-        Mat scaledMat = new Mat();
-        //Scaling the Image
-        if(scalingFactor > 1) {
-            Imgproc.resize(mat, scaledMat, new Size(mat.cols() / scalingFactor, mat.rows() / scalingFactor), 0, 0,
-                    Imgproc.INTER_AREA);
-        } else {
-            Imgproc.resize(mat, scaledMat, new Size(mat.cols() / scalingFactor, mat.rows() / scalingFactor), 0, 0,
-                    Imgproc.INTER_LINEAR);
-        }
-        return scaledMat;
-    }
+        this.correctionFactors = Mat.zeros(mat.rows(), mat.cols(), CvType.CV_32FC1);
 
+        Mat helpMat = Mat.ones(mat.rows(), mat.cols(), mat.type());
 
-    private double[] imageToDouble(Mat mat){
-        mat.convertTo(mat, CvType.CV_64FC1);
-        int size = (int) (mat.total() * mat.channels());
-        double[] pixels = new double[size];
-        mat.get(0, 0, pixels);
-        return pixels;
+        Core.divide(helpMat, mat, correctionFactors, maxValue, CvType.CV_32FC1);
+
+        correctionFactorsSet = true;
     }
 
     private byte[] convertMatToBitmapToByteArray(Mat mat){
         MatOfByte matOfByte = new MatOfByte();
-        Imgcodecs.imencode(".jpeg", mat, matOfByte);
+        Imgcodecs.imencode(".jpg", mat, matOfByte);
         return matOfByte.toArray();
     }
 
@@ -140,30 +83,5 @@ public class IlluminationCorrection {
         Core.split(mat, channels);
         //use only green channel in RGB images
         return channels.get(1);
-    }
-
-    /*    private byte[] illustrate(Mat mat, double[] correctionFactors){
-        double max = 0.0;
-        double [] pixels = new double[correctionFactors.length];
-        for (int i = 0; i < correctionFactors.length; i++) {
-            if(correctionFactors[i]> max){
-                max = correctionFactors[i];
-            }
-        }
-        double difference = max - 1;
-        for(int i = 0; i < correctionFactors.length; i++){
-            double value = ((correctionFactors[i] - 1)/difference)*255;
-            pixels[i] = value;
-        }
-        Mat illustrateMat = new Mat(mat.rows(), mat.cols(), CvType.CV_8UC1);
-        illustrateMat.put(0,0, pixels);
-        illustrateMat = scaleImage(illustrateMat, (double)1/3);
-        return  convertMatToBitmapToByteArray(illustrateMat);
-    }*/
-
-    private Mat performBinarization(Mat mat){
-        Mat binarizedMat = new Mat();
-        Imgproc.threshold(mat,binarizedMat,0,255,Imgproc.THRESH_OTSU);
-        return binarizedMat;
     }
 }
