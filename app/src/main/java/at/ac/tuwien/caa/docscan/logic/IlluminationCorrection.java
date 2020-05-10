@@ -4,6 +4,7 @@ import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfByte;
+import org.opencv.core.Size;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
 import java.util.ArrayList;
@@ -53,7 +54,7 @@ public class IlluminationCorrection {
         if(mat.channels() == 3)
             mat = desaturate(mat);
 
-        Imgproc.medianBlur(mat, mat, KERNEL_SIZE);
+        Imgproc.GaussianBlur(mat, mat, new Size(KERNEL_SIZE, KERNEL_SIZE), 0);
 
         Core.MinMaxLocResult result = Core.minMaxLoc(mat);
         double maxValue = result.maxVal;
